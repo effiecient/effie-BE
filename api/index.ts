@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import bodyParser from "body-parser";
-import { getHello } from "../controllers";
+import { getHello, createUsername, readUsername, readAllUsername, updateUsername, deleteUsername } from "../controllers";
 import cors from "cors";
 
 const app = require("express")();
@@ -20,7 +20,14 @@ const allowCors = (fn: Function) => async (req: VercelRequest, res: VercelRespon
 };
 
 const jsonParser = bodyParser.json();
+
 app.use(cors());
 app.get("/api", allowCors(getHello));
+
+app.post("/api/user/create", jsonParser, allowCors(createUsername));
+app.get("/api/user/read", allowCors(readUsername));
+app.get("/api/user/readall", allowCors(readAllUsername));
+app.put("/api/user/update", jsonParser, allowCors(updateUsername));
+app.delete("/api/user/delete", jsonParser, allowCors(deleteUsername));
 
 module.exports = app;
