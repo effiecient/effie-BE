@@ -10,22 +10,46 @@ fields:{
         }
     }
 }
+
+
 collection('directory'){
-    document($username){
+    document("christojeffrey"){ //username
         fields:{
-            files:{
-
-            },
-            folders:{
-
-            }
+            type: "folder",
+            isPinned:false,
+            childrens:{
+                "google":{ // it's relative path
+                    type: "file",
+                    isPinned:false,
+                    link:"https://google.com",
+                    title:"Google",
+                },
+                "sem5":{
+                    type: "folder",
+                    isPinned:false,
+                    title:"Semester 5"
+                }
+            ]
         },
-        documents("details"):{
-            ... masih mikir
-        }
+        collection("childrens"):{
+            document("google"){
+                fields:{
+                    type: "link",
+                    isPinned:false,
+                    link:"https://google.com",
+                    title:"Google",
+                }
+            }
+            document("sem5"){
+                fields:{
+                    type: "folder",
+                    isPinned:false,
+                    title:"Semester 5"
+                }
+            }
         }
     }
-    }
+}
 ```
 
 <!-- di directory, keynya pake username. buat open posibility kedepannya bisa pake username(gaharus google auth) -->
