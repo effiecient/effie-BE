@@ -1,3 +1,4 @@
 import getHello from "./hello";
 import userController from "./user";
-export { getHello, userController };
+import directoryController from "./directory";
+export { getHello, userController, directoryController };

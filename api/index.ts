@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import bodyParser from "body-parser";
-import { getHello, userController } from "../controllers";
+import { getHello, userController, directoryController } from "../controllers";
 import cors from "cors";
 
 const app = require("express")();
@@ -30,4 +30,20 @@ app.get("/api/user/readall", allowCors(userController.readAllUsername));
 app.put("/api/user/update", jsonParser, allowCors(userController.updateUsername));
 app.delete("/api/user/delete", jsonParser, allowCors(userController.deleteUsername));
 
+// directory controller
+// create
+// link
+app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
+
+// folder
+// app.post("/api/directory/createFolder", jsonParser, allowCors(directoryController.createFolder));
+
+// read (link and folder)
+// app.get("/api/directory/:username/:path", allowCors(directoryController.readLink));
+// delete
+// update
+// catch all
+app.all("*", (req: VercelRequest, res: VercelResponse) => {
+  res.status(404).json({ success: false, message: "Not Found." });
+});
 module.exports = app;
