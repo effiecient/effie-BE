@@ -24,13 +24,17 @@ const jsonParser = bodyParser.json();
 app.use(cors());
 app.get("/api", allowCors(getHello));
 
-app.post("/api/user/create", jsonParser, allowCors(userController.createUsername));
-app.get("/api/user/read", allowCors(userController.readUsername));
-app.get("/api/user/readall", allowCors(userController.readAllUsername));
-app.put("/api/user/update", jsonParser, allowCors(userController.updateUsername));
-app.delete("/api/user/delete", jsonParser, allowCors(userController.deleteUsername));
+// app.get("/api/username-check", allowCors(userController.checkUsername));
+app.post("/api/user/register", jsonParser, allowCors(userController.createUsername));
+// app.post("/api/user/login", jsonParser, allowCors(userController.loginUsername));
 
-// directory controller
+// don't expose it if we don't need it yet.
+// app.get("/api/user/read", allowCors(userController.readUsername));
+// app.get("/api/user/readall", allowCors(userController.readAllUsername));
+// app.put("/api/user/update", jsonParser, allowCors(userController.updateUsername));
+// app.delete("/api/user/delete", jsonParser, allowCors(userController.deleteUsername));
+
+// directory controller. need authentication middleware
 // create
 // link
 app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
