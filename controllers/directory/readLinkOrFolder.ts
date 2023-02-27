@@ -1,12 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDB } from "../../helper";
 
-export async function readLink(req: any, res: VercelResponse) {
+export async function readLinkOrFolder(req: any, res: VercelResponse) {
+  // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
+
   // parse the input and validate
   // read params
   const { username } = req.params;
 
-  //   read /api/directory/username/* path, remove empty strings
+  // read /api/directory/username/* path, remove empty strings
   let pathArray = req.params["0"].split("/").filter((path: any) => path !== "");
 
   const path = "/" + pathArray.join("/");
@@ -14,7 +16,7 @@ export async function readLink(req: any, res: VercelResponse) {
   // start getting data from firestore
   const { db } = getDB();
 
-  //   get rootRef
+  // get rootRef
   const rootRef = db.collection("directories").doc(username);
 
   // check if username exists

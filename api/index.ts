@@ -40,11 +40,10 @@ app.post("/api/user/register", jsonParser, allowCors(userController.createUserna
 app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
 
 // folder
-// app.post("/api/directory/createFolder", jsonParser, allowCors(directoryController.createFolder));
+// app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));
 
 // read (link and folder)
-// can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
-app.get("/api/directory/:username/*", allowCors(directoryController.readLink));
+app.get("/api/directory/:username/*", allowCors(directoryController.readLinkOrFolder));
 // delete
 // update
 // catch all

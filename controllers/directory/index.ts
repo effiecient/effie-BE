@@ -1,4 +1,4 @@
 import { createLink } from "./createLink";
-import { readLink } from "./readLink";
+import { readLinkOrFolder } from "./readLinkOrFolder";
 
-export default { createLink, readLink };
+export default { createLink, readLinkOrFolder };
