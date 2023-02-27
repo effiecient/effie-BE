@@ -5,28 +5,41 @@ export async function readLink(req: any, res: VercelResponse) {
   // parse the input and validate
   // read params
   const { username } = req.params;
-  console.log(username);
-  //   read /api/directory/username/* path
-  const pathArray = req.params["0"].split("/");
-  console.log(pathArray);
 
+  //   read /api/directory/username/* path, remove empty strings
+  let pathArray = req.params["0"].split("/").filter((path: any) => path !== "");
+
+  const path = "/" + pathArray.join("/");
+
+  // start getting data from firestore
   const { db } = getDB();
 
-  //   get fileRef
+  //   get rootRef
   const rootRef = db.collection("directories").doc(username);
-  //   const fileRef = pathArray.reduce((acc: any, relativePath: any) => {
-  //     return acc.collection("childrens").doc(relativePath);
-  //   }, rootRef);
 
-  const fileRef = rootRef.collection("childrens").doc("searchEngines");
-
-  //   read the fileRef
-  const file = await fileRef.get();
-  if (!file.exists) {
-    res.status(404).json({ success: false, message: "File not found." });
+  // check if username exists
+  const root = await rootRef.get();
+  if (!root.exists) {
+    res.status(404).json({ success: false, message: "User not found.", path });
     return;
   }
-  const fileData = file.data();
 
-  res.json({ success: true, message: "readLink", fileData });
+  let fileRef = rootRef;
+  // for each path in pathArray, update the fileRef
+  pathArray.forEach((relativePath: any) => {
+    fileRef = fileRef.collection("childrens").doc(relativePath);
+  });
+
+  // check if fileRef exists
+  const linkOrFolder = await fileRef.get();
+  if (!linkOrFolder.exists) {
+    res.status(404).json({ success: false, message: "File not found.", path });
+    return;
+  }
+
+  // get data
+  const linkOrFolderData = linkOrFolder.data();
+
+  // return
+  res.json({ success: true, path, data: linkOrFolderData });
 }

@@ -1,5 +1,7 @@
 # schema firestore database
 
+fields act like indexing.
+
 ```
 collection('users'){
 fields:{
