@@ -57,7 +57,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   }
   if (parentData.childrens[relativePath]) {
     // this shouldn't happen. he created a duplicate relative path.
-    res.status(400).json({
+    res.status(409).json({
       status: STATUS_ERROR,
       message: "Duplicate relative path",
     });
@@ -82,7 +82,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   });
 
   // return success
-  res.status(200).json({
+  res.status(201).json({
     status: STATUS_SUCCESS,
     data: parentData,
   });
