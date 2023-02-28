@@ -28,15 +28,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
   let decodedToken : any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
-    console.log("decodedToken", decodedToken);
   } catch (error) {
-    return res.status(401).json({
-      status: STATUS_ERROR,
-      message: "Unauthorized",
-    });
-  }
-
-  if (decodedToken.uid !== uid) {
     return res.status(401).json({
       status: STATUS_ERROR,
       message: "Unauthorized",

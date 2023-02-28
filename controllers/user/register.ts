@@ -16,13 +16,11 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-
   // check if token is valid
   const { auth } = getFirebaseAuth();
   let decodedToken : any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
-    console.log("decodedToken", decodedToken);
   } catch (error) {
     return res.status(401).json({
       status: STATUS_ERROR,
@@ -37,12 +35,14 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  if (decodedToken.uid !== uid) {
-    return res.status(401).json({
-      status: STATUS_ERROR,
-      message: "Unauthorized"
-    });
-  }
+  utils.getUsernameById(uid).then((username) => {
+    if (!username === null) {
+      return res.status(400).json({
+        status: STATUS_ERROR,
+        message: `User ID ${uid} is already registered`
+      });
+    }
+  });
 
   const { db } = getDB();
 
@@ -55,9 +55,25 @@ export async function register(req: VercelRequest, res: VercelResponse) {
       message: `Username '${username}' already exists`
     });
   }
+  
+  try {
+    await userRef.doc(uid).set({username});
+  } catch (error) {
+    return res.status(500).json({
+      status: STATUS_ERROR,
+      message: "Internal server error"
+    });
+  }
 
-  // if uid has username, make token from uid, username, and access token
+  // make jwt token
+  const payload = { uid, username };
+  const token = await utils.createTokenJWT(payload, "168h");
 
-  // then, return token and username to client
-    
+  return res.status(200).json({
+    status: STATUS_SUCCESS,
+    token,
+    username,
+    message: "User registered"
+    });
+
 }

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB, getFirebaseAuth } from "../../helper";
+import { getFirebaseAuth } from "../../helper";
 import utils from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function login(req: VercelRequest, res: VercelResponse) {
-    // body contains uid
+  // body contains uid
   const { uid } = req.body;
   const accessToken = req.headers.authorization;
 
@@ -13,11 +13,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({
       status: STATUS_ERROR,
       message: "Missing uid"
-    })}
-  else {
-    console.log("Testing")
-    console.log("uid", uid);
-  };
+  })}
 
   // check if accessToken exists
   if (accessToken === undefined) {
@@ -32,7 +28,6 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   let decodedToken : any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
-    console.log("decodedToken", decodedToken);
   } catch (error) {
     return res.status(401).json({
       status: STATUS_ERROR,
@@ -54,14 +49,13 @@ export async function login(req: VercelRequest, res: VercelResponse) {
       message: `User ID ${uid} does not have a username`,
     });
   }
-  
-  // if uid has username, make token from uid, username
-  // then, return token and username to client
-  // if uid does not have username, return error
+  // make jwt token
   const payload = { uid, username };
   const token = await utils.createTokenJWT(payload, "168h");
   res.status(200).json({
     status: STATUS_SUCCESS,
-    token: token
+    token,
+    username,
+    message: "Login successful"
   });
 }
