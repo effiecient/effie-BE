@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDB } from "../../helper";
+import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 //   example data
 // const username = "christojeffrey";
@@ -16,7 +17,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   const { username, link, path, relativePath, title, isPinned } = req.body;
   if (!username || !link || !relativePath || !title || isPinned === undefined || !path) {
     res.status(400).json({
-      success: false,
+      status: STATUS_ERROR,
       message: "Invalid input",
     });
     return;
@@ -56,8 +57,8 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   }
   if (parentData.childrens[relativePath]) {
     // this shouldn't happen. he created a duplicate relative path.
-    res.status(409).json({
-      success: false,
+    res.status(400).json({
+      status: STATUS_ERROR,
       message: "Duplicate relative path",
     });
   }
@@ -81,8 +82,8 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   });
 
   // return success
-  res.status(201).json({
-    success: true,
-    parentData,
+  res.status(200).json({
+    status: STATUS_SUCCESS,
+    data: parentData,
   });
 }

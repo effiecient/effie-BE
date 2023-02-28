@@ -24,9 +24,9 @@ const jsonParser = bodyParser.json();
 app.use(cors());
 app.get("/api", allowCors(getHello));
 
-// app.get("/api/username-check", allowCors(userController.checkUsername));
-app.post("/api/user/register", jsonParser, allowCors(userController.createUsername));
-// app.post("/api/user/login", jsonParser, allowCors(userController.loginUsername));
+app.post("/api/user/check", jsonParser, allowCors(userController.usernameCheck));
+app.post("/api/user/register", jsonParser, allowCors(userController.register));
+app.post("/api/user/login", jsonParser, allowCors(userController.login));
 
 // don't expose it if we don't need it yet.
 // app.get("/api/user/read", allowCors(userController.readUsername));
@@ -50,4 +50,5 @@ app.get("/api/directory/:username/*", allowCors(directoryController.readLinkOrFo
 app.all("*", (req: VercelRequest, res: VercelResponse) => {
   res.status(404).json({ success: false, message: "Not Found." });
 });
+
 module.exports = app;
