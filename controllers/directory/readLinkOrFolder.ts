@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDB } from "../../helper";
+import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
@@ -22,7 +23,7 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // check if username exists
   const root = await rootRef.get();
   if (!root.exists) {
-    res.status(404).json({ success: false, message: "User not found.", path });
+    res.status(404).json({ status: STATUS_ERROR, message: "User not found.", path });
     return;
   }
 
@@ -35,7 +36,7 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // check if fileRef exists
   const linkOrFolder = await fileRef.get();
   if (!linkOrFolder.exists) {
-    res.status(404).json({ success: false, message: "File not found.", path });
+    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
     return;
   }
 
@@ -43,5 +44,5 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   const linkOrFolderData = linkOrFolder.data();
 
   // return
-  res.json({ success: true, path, data: linkOrFolderData });
+  res.json({ status: STATUS_SUCCESS, path, data: linkOrFolderData });
 }
