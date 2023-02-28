@@ -54,7 +54,6 @@ export async function login(req: VercelRequest, res: VercelResponse) {
       message: `User ID ${uid} does not have a username`,
     });
   }
-  console.log("current username", username);
   
   // if uid has username, make token from uid, username
   // then, return token and username to client
