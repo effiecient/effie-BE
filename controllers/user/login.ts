@@ -61,7 +61,6 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   // if uid does not have username, return error
   const payload = { uid, username };
   const token = await utils.createTokenJWT(payload, "168h");
-  console.log(token)
   res.status(200).json({
     status: STATUS_SUCCESS,
     token: token
