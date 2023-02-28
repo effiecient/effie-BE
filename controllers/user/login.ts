@@ -13,7 +13,11 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({
       status: STATUS_ERROR,
       message: "Missing uid"
-    })};
+    })}
+  else {
+    console.log("Testing")
+    console.log("uid", uid);
+  };
 
   // check if accessToken exists
   if (accessToken === undefined) {
@@ -43,23 +47,23 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  utils.getUsernameById(uid).then((username) => {
-      if (username === null) {
-        return res.status(400).json({
-          status: STATUS_ERROR,
-          message: `User ID ${uid} does not have a username`,
-        });
-        // below is temporary
-      } else {
-          return res.status(200).json({
-            status: STATUS_SUCCESS
-          });
-      }
-  });
-
-    // if uid has username, make token from uid, username, and access token
-
-    // then, return token and username to client
-    
+  const username = await utils.getUsernameById(uid);
+  if (username === null) {
+    return res.status(400).json({
+      status: STATUS_ERROR,
+      message: `User ID ${uid} does not have a username`,
+    });
+  }
+  console.log("current username", username);
   
+  // if uid has username, make token from uid, username
+  // then, return token and username to client
+  // if uid does not have username, return error
+  const payload = { uid, username };
+  const token = await utils.createTokenJWT(payload, "168h");
+  console.log(token)
+  res.status(200).json({
+    status: STATUS_SUCCESS,
+    token: token
+  });
 }
