@@ -44,15 +44,20 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  utils.getUsernameById(uid).then((username) => {
-      if (username === null) {
-        return res.status(400).send(`User ID '${uid}' does not have a username`);
-      }
-  });
+  const { db } = getDB();
 
-    // if uid has username, make token from uid, username, and access token
+  const userRef = db.collection("users");
 
-    // then, return token and username to client
+  const usernameExist = await userRef.where("username", "==", username).get();
+  if (usernameExist.empty === false) {
+    return res.status(400).json({
+      status: STATUS_ERROR,
+      message: `Username '${username}' already exists`
+    });
+  }
+
+  // if uid has username, make token from uid, username, and access token
+
+  // then, return token and username to client
     
-  
 }

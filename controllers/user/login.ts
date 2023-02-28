@@ -57,7 +57,9 @@ export async function login(req: VercelRequest, res: VercelResponse) {
       }
   });
 
-    // if uid has username, make token from uid, username, and access token
+    // if uid has username, make token from uid, username
+
+    // jwt 
 
     // then, return token and username to client
     
