@@ -50,4 +50,5 @@ app.get("/api/directory/:username/*", allowCors(directoryController.readLinkOrFo
 app.all("*", (req: VercelRequest, res: VercelResponse) => {
   res.status(404).json({ success: false, message: "Not Found." });
 });
+
 module.exports = app;
