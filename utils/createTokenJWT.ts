@@ -1,7 +1,7 @@
-import { sign } from 'jsonwebtoken';
-
+const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
 
-function createTokenJWT(payload: any, secretKey: string, expiresIn: string) {
-  return sign(payload, secretKey, { expiresIn });
+export async function createTokenJWT(payload: any, expiresIn: string) {
+  console.log(`creating token with payload ${payload}`)
+  return jwt.sign(payload, process.env.SECRET_KEY, { expiresIn });
 }
