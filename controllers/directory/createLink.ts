@@ -69,7 +69,6 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     link,
     title,
   };
-  console.log(parentData);
   parentRef.set(parentData, { merge: true });
 
   // create a new documents inside the childrens collection

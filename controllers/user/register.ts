@@ -35,14 +35,13 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  utils.getUsernameById(uid).then((username) => {
-    if (!username === null) {
-      return res.status(400).json({
-        status: STATUS_ERROR,
-        message: `User ID ${uid} is already registered`,
-      });
-    }
-  });
+  const UIDUsername = await utils.getUsernameById(uid);
+  if (UIDUsername) {
+    return res.status(400).json({
+      status: STATUS_ERROR,
+      message: `User ID ${uid} is already registered`,
+    });
+  }
 
   const { db } = getDB();
 
