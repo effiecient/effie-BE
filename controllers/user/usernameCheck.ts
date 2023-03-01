@@ -50,7 +50,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         status: STATUS_SUCCESS,
         data: {
-          isResistered: false,
+          isRegistered: false,
         },
       });
     } else {
@@ -58,7 +58,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         status: STATUS_SUCCESS,
         data: {
-          isResistered: true,
+          isRegistered: true,
         },
       });
     }

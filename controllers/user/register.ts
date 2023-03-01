@@ -12,13 +12,13 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   if (uid === undefined || username === undefined) {
     return res.status(400).json({
       status: STATUS_ERROR,
-      message: "Missing uid or username"
+      message: "Missing uid or username",
     });
   }
 
   // check if token is valid
   const { auth } = getFirebaseAuth();
-  let decodedToken : any;
+  let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
   } catch (error) {
@@ -39,7 +39,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     if (!username === null) {
       return res.status(400).json({
         status: STATUS_ERROR,
-        message: `User ID ${uid} is already registered`
+        message: `User ID ${uid} is already registered`,
       });
     }
   });
@@ -52,16 +52,16 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   if (usernameExist.empty === false) {
     return res.status(400).json({
       status: STATUS_ERROR,
-      message: `Username '${username}' already exists`
+      message: `Username '${username}' already exists`,
     });
   }
-  
+
   try {
-    await userRef.doc(uid).set({username});
+    await userRef.doc(uid).set({ username });
   } catch (error) {
     return res.status(500).json({
       status: STATUS_ERROR,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 
@@ -73,7 +73,6 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     status: STATUS_SUCCESS,
     token,
     username,
-    message: "User registered"
-    });
-
+    message: "User registered",
+  });
 }
