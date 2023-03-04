@@ -1,9 +1,9 @@
-import { getDB } from "../helper";
+import utils from ".";
 
 export async function getUsernameById(uid: string) {
   // returns username for a given uid
 
-  const { db } = getDB();
+  const { db } = utils.getDB();
 
   const userRef = db.collection("users");
 

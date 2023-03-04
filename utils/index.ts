@@ -1,4 +1,5 @@
 import { getUsernameById } from "./getUsernameById";
-import { createTokenJWT } from "./createTokenJWT";
+import { createTokenJWT, verifyTokenJWT } from "./jwt";
+import { getDB, getFirebaseAuth } from "./firebase";
 
-export default { getUsernameById, createTokenJWT };
+export default { getUsernameById, createTokenJWT, getDB, getFirebaseAuth, verifyTokenJWT };

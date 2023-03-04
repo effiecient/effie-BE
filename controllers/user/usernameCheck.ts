@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB, getFirebaseAuth } from "../../helper";
 import utils from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
@@ -26,7 +25,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if token is valid
-  const { auth } = getFirebaseAuth();
+  const { auth } = utils.getFirebaseAuth();
   let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);

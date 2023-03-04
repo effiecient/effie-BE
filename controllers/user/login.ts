@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirebaseAuth } from "../../helper";
 import utils from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
@@ -7,13 +6,13 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   // body contains uid
   const { uid } = req.body;
   const accessToken = req.headers.authorization;
-
   // check if body contains uid
   if (uid === undefined) {
     return res.status(400).json({
       status: STATUS_ERROR,
-      message: "Missing uid"
-  })}
+      message: "Missing uid",
+    });
+  }
 
   // check if accessToken exists
   if (accessToken === undefined) {
@@ -24,8 +23,8 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if token is valid
-  const { auth } = getFirebaseAuth();
-  let decodedToken : any;
+  const { auth } = utils.getFirebaseAuth();
+  let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
   } catch (error) {
@@ -56,6 +55,6 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     status: STATUS_SUCCESS,
     token,
     username,
-    message: "Login successful"
+    message: "Login successful",
   });
 }

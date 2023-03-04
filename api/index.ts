@@ -1,41 +1,32 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import bodyParser from "body-parser";
-import { getHello, userController, directoryController } from "../controllers";
+import { getHello, userController, directoryController, authController } from "../controllers";
 import cors from "cors";
 
 const app = require("express")();
 
-const allowCors =
-  (fn: Function) => async (req: VercelRequest, res: VercelResponse) => {
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    // another common pattern
-    // res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-    );
-    if (req.method === "OPTIONS") {
-      res.status(200).end();
-      return;
-    }
-    return await fn(req, res);
-  };
+const allowCors = (fn: Function) => async (req: VercelRequest, res: VercelResponse) => {
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  // another common pattern
+  // res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader("Access-Control-Allow-Headers", "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version");
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+  return await fn(req, res);
+};
 
 const jsonParser = bodyParser.json();
 
 app.use(cors());
 app.get("/api", allowCors(getHello));
 
-app.post(
-  "/api/user/check",
-  jsonParser,
-  allowCors(userController.usernameCheck)
-);
+app.post("/api/auth", allowCors(authController.checkAuth));
+
+app.post("/api/user/check", jsonParser, allowCors(userController.usernameCheck));
 app.post("/api/user/register", jsonParser, allowCors(userController.register));
 app.post("/api/user/login", jsonParser, allowCors(userController.login));
 
@@ -48,20 +39,13 @@ app.post("/api/user/login", jsonParser, allowCors(userController.login));
 // directory controller. need authentication middleware
 // create
 // link
-app.post(
-  "/api/directory/link",
-  jsonParser,
-  allowCors(directoryController.createLink)
-);
+app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
 
 // folder
 // app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));
 
 // read (link and folder)
-app.get(
-  "/api/directory/:username/*",
-  allowCors(directoryController.readLinkOrFolder)
-);
+app.get("/api/directory/:username/*", allowCors(directoryController.readLinkOrFolder));
 // delete
 // update
 // catch all

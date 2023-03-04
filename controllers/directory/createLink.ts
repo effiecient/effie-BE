@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB } from "../../helper";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
+import utils from "../../utils";
 
 //   example data
 // const username = "christojeffrey";
@@ -18,13 +18,22 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   if (!username || !link || !relativePath || !title || isPinned === undefined || !path) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid input",
+      message: "Invalid body",
+    });
+    return;
+  }
+
+  // check if path start with /
+  if (path[0] !== "/") {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid path",
     });
     return;
   }
 
   //   get the db
-  const { db } = getDB();
+  const { db } = utils.getDB();
   //   get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
   const pathArray = path.split("/").filter((item: any) => item !== "");
@@ -36,13 +45,12 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     const childRef = parentRef.collection("childrens").doc(pathItem);
     const childData = await childRef.get();
     if (!childData.exists) {
-      // create the child
-      await childRef.set({
-        type: "folder",
-        isPinned: false,
-        title: pathItem,
-        childrens: {},
+      // if folder doesn't exist, break and return error
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: "Folder not found",
       });
+      return;
     }
     parentRef = childRef;
   }
@@ -61,6 +69,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
       status: STATUS_ERROR,
       message: "Duplicate relative path",
     });
+    return;
   }
 
   parentData.childrens[relativePath] = {
@@ -69,7 +78,8 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     link,
     title,
   };
-  parentRef.set(parentData, { merge: true });
+
+  await parentRef.set(parentData, { merge: true });
 
   // create a new documents inside the childrens collection
   const linkRef = parentRef.collection("childrens").doc(relativePath);
