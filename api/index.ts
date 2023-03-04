@@ -40,6 +40,7 @@ app.post("/api/user/login", jsonParser, allowCors(userController.login));
 // create
 // link
 app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
+app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));
 
 // folder
 // app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));
