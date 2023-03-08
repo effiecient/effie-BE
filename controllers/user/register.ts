@@ -63,6 +63,15 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  // add root folder
+  try {
+    await db.collection("directories").doc(username).set({ type: "folder" });
+  } catch (error) {
+    return res.status(500).json({
+      status: STATUS_ERROR,
+      message: "Internal server error",
+    });
+  }
   // make jwt token
   const payload = { uid, username };
   const token = await utils.createTokenJWT(payload, "168h");
