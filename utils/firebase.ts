@@ -2,7 +2,7 @@ const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 function initialize() {
-  if (process.env.NEXT_PUBLIC_VERCEL_ENV === "development") {
+  if (process.env.VERCEL_ENV === "development") {
     initializeApp({
       credential: cert({
         type: process.env.DEV_FIREBASE_TYPE,
@@ -18,7 +18,7 @@ function initialize() {
         client_x509_cert_url: process.env.DEV_FIREBASE_CLIENT_X509_CERT_URL,
       }),
     });
-  } else if (process.env.NEXT_PUBLIC_VERCEL_ENV === "production") {
+  } else if (process.env.VERCEL_ENV === "production") {
     initializeApp({
       credential: cert({
         type: process.env.FIREBASE_TYPE,
