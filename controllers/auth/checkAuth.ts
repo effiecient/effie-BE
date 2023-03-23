@@ -18,6 +18,15 @@ export default function checkAuth(req: any, res: any) {
     return;
   }
 
+  // check if environment is the same as the current environment
+  if (decoded.environment !== process.env.VERCEL_ENV) {
+    console.log("Invalid token. Environment is not the same.");
+    console.log("Token environment: " + decoded.environment);
+    console.log("Current environment: " + process.env.VERCEL_ENV);
+    res.status(401).json({ success: false, message: "Invalid token." });
+    return;
+  }
+
   if (decoded) {
     res.status(200).json({ success: true, username: decoded.username });
   } else {

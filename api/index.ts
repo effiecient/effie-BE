@@ -51,7 +51,7 @@ app.get("/api/directory/:username/*", allowCors(directoryController.readLinkOrFo
 // update
 // catch all
 app.all("*", (req: VercelRequest, res: VercelResponse) => {
-  res.status(404).json({ success: false, message: "Not Found." });
+  res.status(404).json({ success: false, message: "Endpoint not found." });
 });
 
 module.exports = app;
