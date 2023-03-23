@@ -13,15 +13,22 @@ import utils from "../../utils";
 // MUST HAVE USERNAME AND PATH
 
 // example data
-const body = {
-    username: "felinejtd",
-    path: "/",
-    relativePath: "a",
-    isPinned: false,
-}
+// const body = {
+//     username: "christojeffrey",
+//     path: "/",
+//     relativePath: "a",
+//     isPinned: false,
+// }
 
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
-  if (!body.username || !body.path || !body.relativePath) {
+  // const { username, path, relativePath, title, isPinned } = req.body;
+
+  // temporary data
+  const username = "christojeffrey";
+  const path = "/itb";
+  const relativePath = "semester-6";
+  const isPinned = true;
+  if (!username || !path || !relativePath) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body",
@@ -30,7 +37,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   }
 
   //   check if path start with /
-  if (body.path[0] !== "/") {
+  if (path[0] !== "/") {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid path",
@@ -41,16 +48,12 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   const { db } = utils.getDB();
   // get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
-  let pathArray = body.path.split("/").filter((item: any) => item !== "");
+  let pathArray = path.split("/").filter((item: any) => item !== "");
   // append relative path to pathArray
-  pathArray = [...pathArray, body.relativePath];
 
-  console.log(pathArray);
-
-  const directoryRootRef = db.collection("directories").doc("felinejtd");
+  const directoryRootRef = db.collection("directories").doc(username);
   let parentRef = directoryRootRef;
   // get parent
-  console.log(await (await parentRef.get()).data());
   for (let i = 0; i < pathArray.length; i++) {
     const pathItem = pathArray[i];
     const childRef = parentRef.collection("childrens").doc(pathItem);
@@ -70,7 +73,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   // parentRef is now the folder to be updated
   let folderData = await parentRef.get();
   folderData = folderData.data();
-  
+
   console.log(folderData);
 
   // add the folder to the parent
