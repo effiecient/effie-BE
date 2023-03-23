@@ -73,7 +73,9 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
   // make jwt token
-  const payload = { uid, username };
+  const payload = { uid, username, environment: process.env.VERCEL_ENV };
+  // TODO: clean console.log
+  console.log("payload", payload);
   const token = await utils.createTokenJWT(payload, "168h");
 
   return res.status(200).json({
