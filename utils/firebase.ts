@@ -1,8 +1,11 @@
+import { NODE_ENV } from "../config/env-config";
+
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
+
 function initialize() {
-  if (process.env.VERCEL_ENV === "development" || process.env.NEXT_PUBLIC_VERCEL_ENV === "development") {
+  if (NODE_ENV === "development") {
     initializeApp({
       credential: cert({
         type: process.env.DEV_FIREBASE_TYPE,
@@ -13,12 +16,11 @@ function initialize() {
         client_id: process.env.DEV_FIREBASE_CLIENT_ID,
         auth_uri: process.env.DEV_FIREBASE_AUTH_URI,
         token_uri: process.env.DEV_FIREBASE_TOKEN_URI,
-        auth_provider_x509_cert_url:
-          process.env.DEV_FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+        auth_provider_x509_cert_url: process.env.DEV_FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
         client_x509_cert_url: process.env.DEV_FIREBASE_CLIENT_X509_CERT_URL,
       }),
     });
-  } else if (process.env.VERCEL_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production") {
+  } else if (NODE_ENV === "production") {
     initializeApp({
       credential: cert({
         type: process.env.FIREBASE_TYPE,
@@ -29,8 +31,7 @@ function initialize() {
         client_id: process.env.FIREBASE_CLIENT_ID,
         auth_uri: process.env.FIREBASE_AUTH_URI,
         token_uri: process.env.FIREBASE_TOKEN_URI,
-        auth_provider_x509_cert_url:
-          process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+        auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
         client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
       }),
     });
