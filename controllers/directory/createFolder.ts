@@ -40,19 +40,19 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     const pathItem = pathArray[i];
     const childRef = parentRef.collection("childrens").doc(pathItem);
     const childData = await childRef.get();
-    if (!childData.exists) {
-      // if folder doesn't exist, break and return error
-      res.status(404).json({
-        status: STATUS_ERROR,
-        message: "Folder not found",
-      });
-      return;
-    }
     parentRef = childRef;
   }
 
   // read the parent folder, add to field called link. Add to the array
   let parentData = await parentRef.get();
+  if (!parentData.exists) {
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: "Parent not found",
+    });
+    return;
+  }
+
   parentData = parentData.data();
 
   // check if parentData object has childrens children
