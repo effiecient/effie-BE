@@ -24,9 +24,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-
+  console.log(isPinned, title, newRelativePath);
   // check if at least one of the data is provided
-  if (!isPinned && !title && !newRelativePath) {
+  if (isPinned === undefined && title === undefined && newRelativePath === undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath)",

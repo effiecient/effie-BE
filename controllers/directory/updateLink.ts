@@ -25,7 +25,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if at least one of the data is provided
-  if (!isPinned && !title && !newRelativePath && !link) {
+  if (isPinned === undefined && title === undefined && newRelativePath === undefined && link === undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, link)",
