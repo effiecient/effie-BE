@@ -9,16 +9,16 @@ export async function recursiveUpdate(db: any, updateRootRef: any, updatedData: 
   if (!rootData.exists) {
     return { isUpdated: false, error: "Root data doesn't exist" };
   }
+  rootData = rootData.data();
+  let updatedRootData = { ...rootData, ...updatedData };
 
   //   update parent
-  await updateRootRef.update(updatedData, { merge: true });
+  await updateRootRef.update(updatedRootData, { merge: true });
 
   if (!rootData.childrens) {
     return { isUpdated: true, error: "" };
   }
   //   update parent children
-  rootData = rootData.data();
-  let updatedRootData = { ...rootData };
 
   // for every children, update the children
   for (let relativePath in rootData.childrens) {
