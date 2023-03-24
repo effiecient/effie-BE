@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createTokenJWT, getFirebaseAuth, getUsernameById } from "../../utils";
-import { STATUS_SUCCESS, STATUS_ERROR, NODE_ENV } from "../../config";
+import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function login(req: VercelRequest, res: VercelResponse) {
   // body contains uid
@@ -49,7 +49,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     });
   }
   // make jwt token
-  const payload = { uid, username, environment: NODE_ENV };
+  const payload = { uid, username, environment: process.env.NODE_ENV };
   // TODO: clean console.log
   console.log("payload", payload);
 
