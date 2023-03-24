@@ -3,32 +3,33 @@ import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 import utils from "../../utils";
 
 // example of complete data
-const body = {
-  // MUST HAVE USERNAME PATH and RELATIVE PATH
-  username: "christojeffrey",
-  path: "/",
-  relativePath: "a",
-  // data below is optional. at least one of them must be provided
-  isPinned: false,
-  title: "A",
-  newRelativePath: "b",
-};
+// const body = {
+//   // MUST HAVE USERNAME PATH and RELATIVE PATH
+//   username: "christojeffrey",
+//   path: "/",
+//   relativePath: "a",
+//   // data below is optional. at least one of them must be provided
+//   isPinned: false,
+//   title: "A",
+//   newRelativePath: "b",
+// };
 
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
-  // const { username, path, relativePath, title, isPinned } = req.body;
-
-  // temporary data
-  const username = "christojeffrey";
-  const path = "/itb";
-  const relativePath = "semester-4";
-  const isPinned = false;
-  const title = "Semester 5";
-  const newRelativePath = "semester-5";
+  const { username, path, relativePath, title, isPinned, newRelativePath } = req.body;
 
   if (!username || !path || !relativePath) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body",
+      message: "Invalid body. Username, path, and relativePath must be provided",
+    });
+    return;
+  }
+
+  // check if at least one of the data is provided
+  if (!isPinned && !title && !newRelativePath) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath)",
     });
     return;
   }
