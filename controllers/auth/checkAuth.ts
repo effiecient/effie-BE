@@ -1,3 +1,4 @@
+import { NODE_ENV } from "../../config";
 import utils from "../../utils";
 
 export default function checkAuth(req: any, res: any) {
@@ -19,10 +20,10 @@ export default function checkAuth(req: any, res: any) {
   }
 
   // check if environment is the same as the current environment
-  if (decoded.environment !== process.env.VERCEL_ENV) {
+  if (decoded.environment !== NODE_ENV) {
     console.log("Invalid token. Environment is not the same.");
     console.log("Token environment: " + decoded.environment);
-    console.log("Current environment: " + process.env.VERCEL_ENV);
+    console.log("Current environment: " + NODE_ENV);
     res.status(401).json({ success: false, message: "Invalid token." });
     return;
   }

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import utils from "../../utils";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
+import { STATUS_SUCCESS, STATUS_ERROR, NODE_ENV } from "../../config";
 
 export async function register(req: VercelRequest, res: VercelResponse) {
   // body contains uid
@@ -73,7 +73,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
   // make jwt token
-  const payload = { uid, username, environment: process.env.VERCEL_ENV };
+  const payload = { uid, username, environment: NODE_ENV };
   // TODO: clean console.log
   console.log("payload", payload);
   const token = await utils.createTokenJWT(payload, "168h");
