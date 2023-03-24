@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid, recursiveUpdate } from "../../utils";
+import { getDB, isRelativePathValid, recursiveCloneDocument, recursiveUpdate } from "../../utils";
 import { isUpdatedData } from "../../type";
 
 // example of complete data
@@ -102,11 +102,18 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  parentData = parentData.data();
+  folderData = folderData.data();
+  // check if the folder is a folder
+  if (folderData.type !== "folder") {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid relativePath. It is not a folder.",
+    });
+    return;
+  }
 
   // at this point, we have valid parent and folder
-
-  folderData = folderData.data();
-  parentData = parentData.data();
 
   // 1. update the folder
   let updatedFolderData = {
@@ -115,23 +122,6 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     title: title ? title : folderData.title,
   };
   await folderRef.update(updatedFolderData, { merge: true });
-
-  // handle new relative path
-  if (newRelativePath) {
-    // check if new relative path is already exist
-    const newFolderRef = parentRef.collection("childrens").doc(newRelativePath);
-    const newFolderData = await newFolderRef.get();
-    if (newFolderData.exists) {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Folder already exist.",
-      });
-      return;
-    }
-    // update the folder by deleting the old one and creating a new one
-    await folderRef.delete();
-    await newFolderRef.set(updatedFolderData);
-  }
 
   // 2. update the parent. childrens is an object with relativePath as key and data as value
   let updatedChildren = parentData.childrens;
@@ -149,7 +139,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
   await parentRef.update(updatedParentData, { merge: true });
 
-  // update the shared config
+  // handle update the shared config
   if (shareConfiguration) {
     const { isUpdated, error } = await recursiveUpdate(db, parentRef, relativePath, shareConfiguration);
     if (!isUpdated) {
@@ -159,6 +149,18 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
       });
       return;
     }
+  }
+  // handle new relative path
+  if (newRelativePath) {
+    const { isCloned, error } = await recursiveCloneDocument(parentRef, relativePath, newRelativePath);
+    if (!isCloned) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: error,
+      });
+      return;
+    }
+    // recursive delete the old relative path
   }
 
   res.status(200).json({

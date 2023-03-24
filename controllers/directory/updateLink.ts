@@ -79,9 +79,17 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // at this point, we have valid parent
-
   parentData = parentData.data();
+  // check if relativePath is actually a link
+  if (!parentData.childrens[relativePath].link) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid relativePath. It is not a link",
+    });
+    return;
+  }
+
+  // at this point, we have valid parent
 
   // 1. update the link in the parents children
   let updatedParentData = parentData;

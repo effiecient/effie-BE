@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import utils from "../../utils";
+import { getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
@@ -25,7 +25,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if token is valid
-  const { auth } = utils.getFirebaseAuth();
+  const { auth } = getFirebaseAuth();
   let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
@@ -43,7 +43,7 @@ export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  utils.getUsernameById(uid).then((username) => {
+  getUsernameById(uid).then((username) => {
     if (username === null) {
       // username is not associated with any user. which means the user is not registered
       return res.status(200).json({
