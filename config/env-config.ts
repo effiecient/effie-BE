@@ -1,1 +1,2 @@
-export const NODE_ENV: string = "development";
+
+export const NODE_ENV: string = "production";
