@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid, recursiveCloneDocument, recursiveUpdate } from "../../utils";
+import { getDB, isRelativePathValid, recursiveCloneDocument, recursiveDeleteDocument, recursiveUpdate } from "../../utils";
 import { isUpdatedData } from "../../type";
 
 // example of complete data
@@ -161,6 +161,14 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
       return;
     }
     // recursive delete the old relative path
+    const { isDeleted, error: deleteError } = await recursiveDeleteDocument(parentRef, relativePath);
+    if (!isDeleted) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: deleteError,
+      });
+      return;
+    }
   }
 
   res.status(200).json({

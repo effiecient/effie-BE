@@ -4,3 +4,4 @@ export { getDB, getFirebaseAuth } from "./firebase";
 export { recursiveUpdate } from "./recursiveUpdate";
 export { isRelativePathValid } from "./validation";
 export { recursiveCloneDocument } from "./recursiveCloneDocument";
+export { recursiveDeleteDocument } from "./recursiveDeleteDocument";
