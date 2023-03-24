@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import utils from "../../utils";
+import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR, NODE_ENV } from "../../config";
 
 export async function register(req: VercelRequest, res: VercelResponse) {
@@ -16,7 +16,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if token is valid
-  const { auth } = utils.getFirebaseAuth();
+  const { auth } = getFirebaseAuth();
   let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
@@ -34,7 +34,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const UIDUsername = await utils.getUsernameById(uid);
+  const UIDUsername = await getUsernameById(uid);
   if (UIDUsername) {
     return res.status(400).json({
       status: STATUS_ERROR,
@@ -42,7 +42,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const { db } = utils.getDB();
+  const { db } = getDB();
 
   const userRef = db.collection("users");
 
@@ -76,7 +76,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   const payload = { uid, username, environment: NODE_ENV };
   // TODO: clean console.log
   console.log("payload", payload);
-  const token = await utils.createTokenJWT(payload, "168h");
+  const token = await createTokenJWT(payload, "168h");
 
   return res.status(200).json({
     status: STATUS_SUCCESS,

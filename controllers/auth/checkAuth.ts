@@ -1,5 +1,5 @@
 import { NODE_ENV } from "../../config";
-import utils from "../../utils";
+import { verifyTokenJWT } from "../../utils";
 
 export default function checkAuth(req: any, res: any) {
   // check whether the auth is valid or not. If valid, return username
@@ -13,7 +13,7 @@ export default function checkAuth(req: any, res: any) {
   }
   let decoded;
   try {
-    decoded = utils.verifyTokenJWT(token);
+    decoded = verifyTokenJWT(token);
   } catch (err) {
     res.status(401).json({ success: false, message: "Invalid token." });
     return;

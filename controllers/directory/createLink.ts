@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import utils from "../../utils";
+import { getDB, isRelativePathValid } from "../../utils";
 
 //   example data
 // const username = "christojeffrey";
@@ -31,9 +31,17 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  // prevent spaces in relative path
+  if (!isRelativePathValid(relativePath)) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid relative path. Spaces are not allowed",
+    });
+    return;
+  }
 
   //   get the db
-  const { db } = utils.getDB();
+  const { db } = getDB();
   //   get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
   const pathArray = path.split("/").filter((item: any) => item !== "");

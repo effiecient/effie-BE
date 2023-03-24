@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import utils from "../../utils";
+import { getDB, isRelativePathValid } from "../../utils";
 
 // example of complete data
 // MUST HAVE USERNAME PATH and RELATIVE PATH
@@ -41,8 +41,19 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  // check if newRelativePath is valid
+  if (newRelativePath) {
+    if (!isRelativePathValid(newRelativePath)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid newRelativePath",
+      });
+      return;
+    }
+  }
+
   //   get the db
-  const { db } = utils.getDB();
+  const { db } = getDB();
   // get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
   let pathArray = path.split("/").filter((item: any) => item !== "");

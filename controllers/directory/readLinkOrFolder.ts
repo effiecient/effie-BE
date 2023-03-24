@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import utils from "../../utils";
+import { getDB } from "../../utils";
 
 export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
@@ -15,7 +15,7 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   const path = "/" + pathArray.join("/");
 
   // start getting data from firestore
-  const { db } = utils.getDB();
+  const { db } = getDB();
 
   // get rootRef
   const rootRef = db.collection("directories").doc(username);

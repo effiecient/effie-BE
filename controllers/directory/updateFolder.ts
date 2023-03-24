@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import utils from "../../utils";
+import { getDB, isRelativePathValid, recursiveUpdate } from "../../utils";
+import { isUpdatedData } from "../../type";
 
 // example of complete data
 // const body = {
@@ -12,10 +13,14 @@ import utils from "../../utils";
 //   isPinned: false,
 //   title: "A",
 //   newRelativePath: "b",
+//   shareConfiguration: {
+//     isShared: true,
+//     sharedPrivilege: "read",
+//   },
 // };
 
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
-  const { username, path, relativePath, title, isPinned, newRelativePath } = req.body;
+  const { username, path, relativePath, title, isPinned, newRelativePath, shareConfiguration } = req.body;
 
   if (!username || !path || !relativePath) {
     res.status(400).json({
@@ -26,14 +31,24 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   }
   console.log(isPinned, title, newRelativePath);
   // check if at least one of the data is provided
-  if (isPinned === undefined && title === undefined && newRelativePath === undefined) {
+  if (isPinned === undefined && title === undefined && newRelativePath === undefined && shareConfiguration === undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath)",
+      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, shareConfiguration)",
     });
     return;
   }
 
+  if (shareConfiguration) {
+    // shared config must be type of UpdatedData
+    if (!isUpdatedData({ shareConfiguration })) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid body. Shared config must be type of UpdatedData",
+      });
+      return;
+    }
+  }
   //   check if path start with /
   if (path[0] !== "/") {
     res.status(400).json({
@@ -42,8 +57,17 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  if (newRelativePath) {
+    if (!isRelativePathValid(newRelativePath)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid newRelativePath",
+      });
+      return;
+    }
+  }
   //   get the db
-  const { db } = utils.getDB();
+  const { db } = getDB();
   // get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
   let pathArray = path.split("/").filter((item: any) => item !== "");
@@ -124,6 +148,18 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   };
 
   await parentRef.update(updatedParentData, { merge: true });
+
+  // update the shared config
+  if (shareConfiguration) {
+    const { isUpdated, error } = await recursiveUpdate(db, parentRef, relativePath, shareConfiguration);
+    if (!isUpdated) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: error,
+      });
+      return;
+    }
+  }
 
   res.status(200).json({
     status: STATUS_SUCCESS,

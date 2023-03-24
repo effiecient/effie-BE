@@ -1,42 +1,63 @@
-type UpdatedData = {
-  sharedConfig?: {
-    isShared: boolean;
-    sharedPrivilege: "read" | "write";
-  };
-};
-export async function recursiveUpdate(db: any, updateRootRef: any, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
-  let rootData = await updateRootRef.get();
-  if (!rootData.exists) {
+import { UpdatedData } from "../type";
+
+export async function recursiveUpdate(db: any, updatedParentRef: any, childrenName: string, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
+  let parentData = await updatedParentRef.get();
+  if (!parentData.exists) {
     return { isUpdated: false, error: "Root data doesn't exist" };
   }
-  rootData = rootData.data();
-  let updatedRootData = { ...rootData, ...updatedData };
+  parentData = parentData.data();
+
+  // check if children exists
+  if (!parentData.childrens[childrenName]) {
+    return { isUpdated: false, error: "Children doesn't exist" };
+  }
+  let updatedParentData = {
+    ...parentData,
+    childrens: {
+      ...parentData.childrens,
+      [childrenName]: {
+        ...parentData.childrens[childrenName],
+        shareConfiguration: {
+          ...updatedData,
+        },
+      },
+    },
+  };
 
   //   update parent
-  await updateRootRef.update(updatedRootData, { merge: true });
+  await updatedParentRef.update(updatedParentData, { merge: true });
 
-  if (!rootData.childrens) {
+  //  if children is a link, update is done
+  if (parentData.childrens[childrenName].type === "link") {
     return { isUpdated: true, error: "" };
   }
-  //   update parent children
+
+  // if children is a folder, update the children
+  const folderRef = updatedParentRef.collection("childrens").doc(childrenName);
+  let folderData = await folderRef.get();
+  if (!folderData.exists) {
+    return { isUpdated: false, error: "Children data doesn't exist. this shouldn't happen, the data is inconsistent" };
+  }
+  folderData = folderData.data();
+  //   update children
+  let updatedFolderData = {
+    ...folderData,
+    shareConfiguration: {
+      ...updatedData,
+    },
+  };
+  await folderRef.update(updatedFolderData, { merge: true });
+
+  // if folder doesn't have children, update is done
+  if (!updatedFolderData.childrens) {
+    return { isUpdated: true, error: "" };
+  }
 
   // for every children, update the children
-  for (let relativePath in rootData.childrens) {
-    updatedRootData.childrens[relativePath] = {
-      ...updatedRootData.childrens[relativePath],
-      ...updatedData,
-    };
-  }
-  await updateRootRef.update(updatedRootData, { merge: true });
-  //   update the children collections
-  // for every children, update the children
-  for (let relativePath in rootData.childrens) {
-    if (rootData.childrens[relativePath].type === "folder") {
-      const childRef = updateRootRef.collection("childrens").doc(relativePath);
-      const { isUpdated, error } = await recursiveUpdate(db, childRef, updatedData);
-      if (!isUpdated) {
-        return { isUpdated: false, error };
-      }
+  for (let relativePath in updatedFolderData.childrens) {
+    const { isUpdated, error } = await recursiveUpdate(db, folderRef, relativePath, updatedData);
+    if (!isUpdated) {
+      return { isUpdated: false, error };
     }
   }
   return { isUpdated: true, error: "" };
