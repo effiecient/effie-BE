@@ -39,7 +39,6 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   for (let i = 0; i < pathArray.length; i++) {
     const pathItem = pathArray[i];
     const childRef = parentRef.collection("childrens").doc(pathItem);
-    const childData = await childRef.get();
     parentRef = childRef;
   }
 
