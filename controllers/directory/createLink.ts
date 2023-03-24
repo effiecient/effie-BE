@@ -81,14 +81,15 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
 
   await parentRef.set(parentData, { merge: true });
 
+  // NO LONGER NEEDED
   // create a new documents inside the childrens collection
-  const linkRef = parentRef.collection("childrens").doc(relativePath);
-  await linkRef.set({
-    type: "link",
-    isPinned,
-    link,
-    title,
-  });
+  // const linkRef = parentRef.collection("childrens").doc(relativePath);
+  // await linkRef.set({
+  //   type: "link",
+  //   isPinned,
+  //   link,
+  //   title,
+  // });
 
   // return success
   res.status(201).json({
