@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import utils from "../../utils";
+import { createTokenJWT, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR, NODE_ENV } from "../../config";
 
 export async function login(req: VercelRequest, res: VercelResponse) {
@@ -23,7 +23,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   }
 
   // check if token is valid
-  const { auth } = utils.getFirebaseAuth();
+  const { auth } = getFirebaseAuth();
   let decodedToken: any;
   try {
     decodedToken = await auth.verifyIdToken(accessToken);
@@ -41,7 +41,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const username = await utils.getUsernameById(uid);
+  const username = await getUsernameById(uid);
   if (username === null) {
     return res.status(400).json({
       status: STATUS_ERROR,
@@ -53,7 +53,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   // TODO: clean console.log
   console.log("payload", payload);
 
-  const token = await utils.createTokenJWT(payload, "168h");
+  const token = await createTokenJWT(payload, "168h");
   res.status(200).json({
     status: STATUS_SUCCESS,
     token,

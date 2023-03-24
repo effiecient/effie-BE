@@ -1,9 +1,9 @@
-import utils from ".";
+import { getDB } from ".";
 
 export async function getUsernameById(uid: string) {
   // returns username for a given uid
 
-  const { db } = utils.getDB();
+  const { db } = getDB();
 
   const userRef = db.collection("users");
 

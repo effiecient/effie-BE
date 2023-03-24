@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import utils from "../../utils";
+import { getDB, isRelativePathValid } from "../../utils";
 
 //   example data
 // const username = "christojeffrey";
@@ -31,9 +31,17 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  // prevent spaces in relative path
+  if (!isRelativePathValid(relativePath)) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid relative path. Spaces are not allowed",
+    });
+    return;
+  }
 
   //   get the db
-  const { db } = utils.getDB();
+  const { db } = getDB();
   //   get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
   const pathArray = path.split("/").filter((item: any) => item !== "");
@@ -43,20 +51,18 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   for (let i = 0; i < pathArray.length; i++) {
     const pathItem = pathArray[i];
     const childRef = parentRef.collection("childrens").doc(pathItem);
-    const childData = await childRef.get();
-    if (!childData.exists) {
-      // if folder doesn't exist, break and return error
-      res.status(404).json({
-        status: STATUS_ERROR,
-        message: "Folder not found",
-      });
-      return;
-    }
     parentRef = childRef;
   }
 
   // read the parent folder, add to field called link. Add to the array
   let parentData = await parentRef.get();
+  if (!parentData.exists) {
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: "Parent not found",
+    });
+    return;
+  }
   parentData = parentData.data();
 
   // check if parentData object has childrens children
@@ -81,14 +87,15 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
 
   await parentRef.set(parentData, { merge: true });
 
+  // NO LONGER NEEDED. links are now stored in the parent folder, not in a separate document
   // create a new documents inside the childrens collection
-  const linkRef = parentRef.collection("childrens").doc(relativePath);
-  await linkRef.set({
-    type: "link",
-    isPinned,
-    link,
-    title,
-  });
+  // const linkRef = parentRef.collection("childrens").doc(relativePath);
+  // await linkRef.set({
+  //   type: "link",
+  //   isPinned,
+  //   link,
+  //   title,
+  // });
 
   // return success
   res.status(201).json({

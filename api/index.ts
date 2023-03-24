@@ -41,6 +41,7 @@ app.post("/api/user/login", jsonParser, allowCors(userController.login));
 // link
 app.post("/api/directory/link", jsonParser, allowCors(directoryController.createLink));
 app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));
+app.patch("/api/directory/folder", jsonParser, allowCors(directoryController.updateFolder));
 
 // folder
 // app.post("/api/directory/folder", jsonParser, allowCors(directoryController.createFolder));

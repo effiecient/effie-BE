@@ -1,5 +1,7 @@
-import { getUsernameById } from "./getUsernameById";
-import { createTokenJWT, verifyTokenJWT } from "./jwt";
-import { getDB, getFirebaseAuth } from "./firebase";
-
-export default { getUsernameById, createTokenJWT, getDB, getFirebaseAuth, verifyTokenJWT };
+export { getUsernameById } from "./getUsernameById";
+export { createTokenJWT, verifyTokenJWT } from "./jwt";
+export { getDB, getFirebaseAuth } from "./firebase";
+export { recursiveUpdate } from "./recursiveUpdate";
+export { isRelativePathValid } from "./validation";
+export { recursiveCloneDocument } from "./recursiveCloneDocument";
+export { recursiveDeleteDocument } from "./recursiveDeleteDocument";
