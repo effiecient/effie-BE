@@ -1,6 +1,8 @@
-// todo make types more specific
 type UpdatedData = {
-  [key: string]: any;
+  sharedConfig?: {
+    isShared: boolean;
+    sharedPrivilege: "read" | "write";
+  };
 };
 export async function recursiveUpdate(db: any, updateRootRef: any, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
   let rootData = await updateRootRef.get();
