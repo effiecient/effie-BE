@@ -113,6 +113,16 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // check if the newRelativePath is already exist
+  if (newRelativePath) {
+    if (parentData.childrens[newRelativePath]) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid newRelativePath. It is already exist.",
+      });
+      return;
+    }
+  }
   // at this point, we have valid parent and folder
 
   // 1. update the folder
