@@ -141,7 +141,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
   // handle update the shared config
   if (shareConfiguration) {
-    const { isUpdated, error } = await recursiveUpdate(db, parentRef, relativePath, shareConfiguration);
+    const { isUpdated, error } = await recursiveUpdate(parentRef, relativePath, shareConfiguration);
     if (!isUpdated) {
       res.status(400).json({
         status: STATUS_ERROR,

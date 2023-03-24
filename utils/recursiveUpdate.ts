@@ -1,6 +1,6 @@
 import { UpdatedData } from "../type";
 
-export async function recursiveUpdate(db: any, updatedParentRef: any, childrenName: string, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
+export async function recursiveUpdate(updatedParentRef: any, childrenName: string, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
   let parentData = await updatedParentRef.get();
   if (!parentData.exists) {
     return { isUpdated: false, error: "Root data doesn't exist" };
@@ -55,7 +55,7 @@ export async function recursiveUpdate(db: any, updatedParentRef: any, childrenNa
 
   // for every children, update the children
   for (let relativePath in updatedFolderData.childrens) {
-    const { isUpdated, error } = await recursiveUpdate(db, folderRef, relativePath, updatedData);
+    const { isUpdated, error } = await recursiveUpdate(folderRef, relativePath, updatedData);
     if (!isUpdated) {
       return { isUpdated: false, error };
     }
