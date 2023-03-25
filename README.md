@@ -1,4 +1,4 @@
-# How to Clone and Setup Repo
+# How to Clone and Setup Repository
 
 ## For SSH
 
