@@ -24,5 +24,6 @@ export async function recursiveDeleteDocument(parentRef: any, documentName: stri
 
   // delete document
   await documentRef.delete();
+
   return { isDeleted: true, error: "" };
 }
