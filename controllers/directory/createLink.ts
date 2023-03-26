@@ -11,11 +11,19 @@ import { getDB, isRelativePathValid } from "../../utils";
 // const title = "Bing";
 // const isPinned = false;
 
+// TODO: create based on parent share configuration
 export async function createLink(req: VercelRequest, res: VercelResponse) {
-  // parse the input and validate
-  // read body
+  // validate: must be logged in to create link
+  if (req.headers.username === undefined) {
+    res.status(401).json({
+      status: STATUS_ERROR,
+      message: "Unauthorized",
+    });
+    return;
+  }
+  // validate: parse the body
   const { username, link, path, relativePath, title, isPinned } = req.body;
-  if (!username || !link || !relativePath || !title || isPinned === undefined || !path) {
+  if (username === undefined || link === undefined || path === undefined || relativePath === undefined || title === undefined || isPinned === undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body",
@@ -23,7 +31,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // check if path start with /
+  // validate: check if path start with /
   if (path[0] !== "/") {
     res.status(400).json({
       status: STATUS_ERROR,
@@ -31,11 +39,11 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-  // prevent spaces in relative path
+  // validate: prevent invalid characters in relative path
   if (!isRelativePathValid(relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid relative path. Spaces are not allowed",
+      message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
     });
     return;
   }
@@ -56,6 +64,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
 
   // read the parent folder, add to field called link. Add to the array
   let parentData = await parentRef.get();
+  // validate: check if parent exists
   if (!parentData.exists) {
     res.status(404).json({
       status: STATUS_ERROR,
@@ -65,12 +74,14 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   }
   parentData = parentData.data();
 
+  // validate: check if user is the owner of the parent or if the parent is public
+
   // check if parentData object has childrens children
   if (!parentData.childrens) {
     parentData.childrens = {};
   }
   if (parentData.childrens[relativePath]) {
-    // this shouldn't happen. he created a duplicate relative path.
+    // validate: this shouldn't happen. he created a duplicate relative path.
     res.status(409).json({
       status: STATUS_ERROR,
       message: "Duplicate relative path",
