@@ -1,8 +1,7 @@
-import { STATUS_ERROR } from "../config";
 import { verifyTokenJWT } from "../utils";
 
 export function addAuthUsernameToHeader(req: any, res: any, next: any) {
-  // will check if auth header is present. if not, return 401. if yes, add username to header
+  // will check if auth header is present. if yes, add username to header. if no, add undefined to header
   if (!req.headers.authorization) {
     req.headers.username = undefined;
     return next();
@@ -11,7 +10,6 @@ export function addAuthUsernameToHeader(req: any, res: any, next: any) {
   let decoded;
   try {
     const authHeader = req.headers.authorization;
-    console.log(authHeader);
     decoded = verifyTokenJWT(authHeader);
     req.headers.username = decoded.username;
   } catch (err: any) {
