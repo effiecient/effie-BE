@@ -42,6 +42,17 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
 
   // get data
   let parentData = parent.data();
+  // handle when get root directory
+  if (pathArray.length === 0) {
+    // validate: handle if not accessed by owner and private
+    if (req.headers.username !== username && !parentData.shareConfiguration?.isShared) {
+      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+      return;
+    }
+    res.json({ status: STATUS_SUCCESS, path, data: parentData });
+    return;
+  }
+
   // check the children of parentData and get the last path in pathArray
   if (!parentData.childrens) {
     res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
