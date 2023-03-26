@@ -42,43 +42,40 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
 
   // get data
   let parentData = parent.data();
+
+  let linkOrFolderData: any;
+
   // handle when get root directory
   if (pathArray.length === 0) {
-    // validate: handle if not accessed by owner and private
-    if (req.headers.username !== username && !parentData.shareConfiguration?.isShared) {
-      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
-      return;
-    }
-    res.json({ status: STATUS_SUCCESS, path, data: parentData });
-    return;
-  }
-
-  // check the children of parentData and get the last path in pathArray
-  if (!parentData.childrens) {
-    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
-    return;
-  }
-  const linkOrFolderAsChildren = parentData.childrens[pathArray[pathArray.length - 1]];
-
-  // validate: check if linkOrFolderData exists
-  if (!linkOrFolderAsChildren) {
-    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
-    return;
-  }
-
-  // if type is folder, get the folderRef
-  let linkOrFolderData: any;
-  if (linkOrFolderAsChildren.type === "folder") {
-    let linkOrFolderRef = parentRef.collection("childrens").doc(pathArray[pathArray.length - 1]);
-    const linkOrFolder = await linkOrFolderRef.get();
-    if (!linkOrFolder.exists) {
-      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
-      return;
-    }
-    linkOrFolderData = linkOrFolder.data();
+    linkOrFolderData = parentData;
   } else {
-    linkOrFolderData = linkOrFolderAsChildren;
+    // check the children of parentData and get the last path in pathArray
+    if (!parentData.childrens) {
+      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+      return;
+    }
+    const linkOrFolderAsChildren = parentData.childrens[pathArray[pathArray.length - 1]];
+
+    // validate: check if linkOrFolderData exists
+    if (!linkOrFolderAsChildren) {
+      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+      return;
+    }
+
+    // if type is folder, get the folderRef
+    if (linkOrFolderAsChildren.type === "folder") {
+      let linkOrFolderRef = parentRef.collection("childrens").doc(pathArray[pathArray.length - 1]);
+      const linkOrFolder = await linkOrFolderRef.get();
+      if (!linkOrFolder.exists) {
+        res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+        return;
+      }
+      linkOrFolderData = linkOrFolder.data();
+    } else {
+      linkOrFolderData = linkOrFolderAsChildren;
+    }
   }
+  // at this point, the important variable is linkOrFolderData
 
   // validate: handle if not accessed by owner and private
   if (req.headers.username !== username && !linkOrFolderData.shareConfiguration?.isShared) {
@@ -90,6 +87,11 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   if (linkOrFolderData.shareConfiguration?.isShared === undefined) {
     linkOrFolderData.shareConfiguration = {};
     linkOrFolderData.shareConfiguration.isShared = false;
+  } else {
+    // if shared but without sharedPrivilege, add read
+    if (linkOrFolderData.shareConfiguration.sharedPrivilege === undefined) {
+      linkOrFolderData.shareConfiguration.sharedPrivilege = "read";
+    }
   }
   if (linkOrFolderData.type === "folder") {
     if (linkOrFolderData.childrens) {
@@ -98,6 +100,11 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
         if (linkOrFolderData.childrens[child].shareConfiguration?.isShared === undefined) {
           linkOrFolderData.childrens[child].shareConfiguration = {};
           linkOrFolderData.childrens[child].shareConfiguration.isShared = false;
+        } else {
+          // if shared but without sharedPrivilege, add read
+          if (linkOrFolderData.childrens[child].shareConfiguration.sharedPrivilege === undefined) {
+            linkOrFolderData.childrens[child].shareConfiguration.sharedPrivilege = "read";
+          }
         }
       });
     }
@@ -107,7 +114,11 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     // if type is folder, check if childrens is shared. if not, remove childrens
     if (linkOrFolderData.type === "folder") {
       if (linkOrFolderData.childrens) {
-        linkOrFolderData.childrens = linkOrFolderData.childrens.filter((child: any) => child.isShared);
+        Object.keys(linkOrFolderData.childrens).forEach((child: any) => {
+          if (!linkOrFolderData.childrens[child].shareConfiguration.isShared) {
+            delete linkOrFolderData.childrens[child];
+          }
+        });
       }
     }
   }
