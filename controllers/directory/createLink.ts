@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid } from "../../utils";
+import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
+import { isShareConfiguration } from "../../typeValidator";
 
 //   example data
 // const username = "christojeffrey";
@@ -10,6 +11,7 @@ import { getDB, isRelativePathValid } from "../../utils";
 // const relativePath = "bing";
 // const title = "Bing";
 // const isPinned = false;
+// const shareConfiguration = {isShared:false}
 
 // TODO: create based on parent share configuration
 export async function createLink(req: VercelRequest, res: VercelResponse) {
@@ -22,14 +24,17 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
   // validate: parse the body
-  const { username, link, path, relativePath, title, isPinned } = req.body;
-  if (username === undefined || link === undefined || path === undefined || relativePath === undefined || title === undefined || isPinned === undefined) {
+  let { username, link, path, relativePath, title, isPinned, shareConfiguration } = req.body;
+  if (isAnyUndefined(username, link, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body",
     });
     return;
   }
+  // handle default value
+  title = title === undefined ? title : relativePath;
+  isPinned = isPinned === undefined ? false : isPinned;
 
   // validate: check if path start with /
   if (path[0] !== "/") {
@@ -46,6 +51,16 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
       message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
     });
     return;
+  }
+  // validate shareConfiguraiton
+  if (shareConfiguration !== undefined) {
+    if (!isShareConfiguration(shareConfiguration)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid share configuration.",
+      });
+      return;
+    }
   }
 
   //   get the db
@@ -74,8 +89,15 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   }
   parentData = parentData.data();
 
-  // validate: check if user is the owner of the parent or if the parent is public
-
+  // validate: if the user is not the owner and (the parent isShared = false or (isShared = true and doesn't have the privilage to write))
+  // then not permited
+  if (req.headers.username !== username && (!parentData.isShared || (parentData.isShared && parentData.sharedPrivilege !== "write"))) {
+    res.status(403).json({
+      status: STATUS_ERROR,
+      message: "Forbidden.",
+    });
+    return;
+  }
   // check if parentData object has childrens children
   if (!parentData.childrens) {
     parentData.childrens = {};
@@ -89,11 +111,19 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // if req.body has shareConfig, use it. else if parent has shareConfig, use it. else, {isShared:false}
+  if (shareConfiguration !== undefined) {
+  } else if (parentData.shareConfiguration) {
+    shareConfiguration = parentData.shareConfiguration;
+  } else {
+    shareConfiguration = { isShared: false };
+  }
   parentData.childrens[relativePath] = {
     type: "link",
     isPinned,
     link,
     title,
+    shareConfiguration,
   };
 
   await parentRef.set(parentData, { merge: true });

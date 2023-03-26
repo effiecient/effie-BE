@@ -119,8 +119,8 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // validate: check if has access. if not the owner, and (the folder is not shared or shared but not with read privilege), return error
-  if (req.headers.username !== username && (!linkData.isShared || (linkData.isShared && linkData.sharedPrivilege !== "read"))) {
+  // validate: check if has access. if not the owner, and (the folder is not shared or shared but not with write privilege), return error
+  if (req.headers.username !== username && (!linkData.isShared || (linkData.isShared && linkData.sharedPrivilege !== "write"))) {
     res.status(403).json({
       status: STATUS_ERROR,
       message: "Forbidden.",

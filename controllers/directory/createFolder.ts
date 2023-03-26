@@ -4,6 +4,7 @@ import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
 import { isShareConfiguration } from "../../typeValidator";
 
 //   example data
+// TODO: create a type for req.body
 // const username = "christojeffrey";
 
 // const path = "/";
@@ -13,7 +14,7 @@ import { isShareConfiguration } from "../../typeValidator";
 // shareConfiguration={isShared:false}
 
 // TODO: create share configuration based on parent share configuration
-// TODO: handle body validation better. for example, making sure title is string.
+// TODO: handle body validation better. for example, making sure title is string. https://github.com/icebob/fastest-validator
 export async function createFolder(req: VercelRequest, res: VercelResponse) {
   // validate: is logged in
   if (req.headers.username === undefined) {
@@ -32,8 +33,9 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  // handle default value
   title = title === undefined ? relativePath : title;
-  shareConfiguration = shareConfiguration === undefined ? { isShared: false } : shareConfiguration;
+  isPinned = isPinned === undefined ? false : isPinned;
 
   // validate: check if path start with /
   if (path[0] !== "/") {
@@ -52,12 +54,14 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     return;
   }
   // validate: check if shareConfiguration valid
-  if (!isShareConfiguration(shareConfiguration)) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid share configuration.",
-    });
-    return;
+  if (shareConfiguration !== undefined) {
+    if (!isShareConfiguration(shareConfiguration)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid share configuration.",
+      });
+      return;
+    }
   }
 
   //   get the db
@@ -85,7 +89,15 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   }
 
   parentData = parentData.data();
-
+  // validate: if the user is not the owner and (the parent isShared = false or (isShared = true and doesn't have the privilage to write))
+  // then not permited
+  if (req.headers.username !== username && (!parentData.isShared || (parentData.isShared && parentData.sharedPrivilege !== "write"))) {
+    res.status(403).json({
+      status: STATUS_ERROR,
+      message: "Forbidden.",
+    });
+    return;
+  }
   // check if parentData object has childrens children
   if (!parentData.childrens) {
     parentData.childrens = {};
@@ -98,13 +110,23 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+  // if req.body has shareConfig, use it. else if parent has shareConfig, use it. else, {isShared:false}
+  if (shareConfiguration !== undefined) {
+  } else if (parentData.shareConfiguration) {
+    shareConfiguration = parentData.shareConfiguration;
+  } else {
+    shareConfiguration = { isShared: false };
+  }
 
-  // add the folder to the parent
-  parentData.childrens[relativePath] = {
+  const folderData = {
     title,
     isPinned,
     type: "folder",
+    shareConfiguration,
   };
+
+  // add the folder to the parent
+  parentData.childrens[relativePath] = folderData;
 
   // update the parent
   await parentRef.update(parentData, { merge: true });
@@ -112,14 +134,10 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   // create a new documents inside the childrens collection
   const folderRef = parentRef.collection("childrens").doc(relativePath);
 
-  await folderRef.set({
-    title,
-    isPinned,
-    type: "folder",
-  });
+  await folderRef.set(folderData);
 
   res.status(201).json({
     status: STATUS_SUCCESS,
-    data: parentData,
+    data: folderData,
   });
 }
