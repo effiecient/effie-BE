@@ -4,7 +4,7 @@ import { verifyTokenJWT } from "../utils";
 export function addAuthUsernameToHeader(req: any, res: any, next: any) {
   // will check if auth header is present. if not, return 401. if yes, add username to header
   if (!req.headers.authorization) {
-    req.headers.username = null;
+    req.headers.username = undefined;
     return next();
   }
   // parse auth header and add username to req

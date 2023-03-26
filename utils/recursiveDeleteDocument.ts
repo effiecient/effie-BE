@@ -1,3 +1,4 @@
+// TODO: on failed, rollback
 export async function recursiveDeleteDocument(parentRef: any, documentName: string): Promise<{ isDeleted: boolean; error: string }> {
   // delete document
 
