@@ -70,7 +70,7 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   }
 
   // validate: handle if not accessed by owner and private
-  if (req.headers.username !== username && !linkOrFolderData.isShared) {
+  if (req.headers.username !== username && !linkOrFolderData.shareConfiguration?.isShared) {
     res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
     return;
   }
