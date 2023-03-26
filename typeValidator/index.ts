@@ -2,7 +2,7 @@ import { ShareConfiguration } from "../type/shareConfiguration";
 
 // type Validator
 export const isShareConfiguration = (shareConfiguration: ShareConfiguration): boolean => {
-  if (typeof shareConfiguration.isShared !== "boolean") {
+  if (typeof shareConfiguration?.isShared !== "boolean") {
     return false;
   }
   if (shareConfiguration.sharedPrivilege) {

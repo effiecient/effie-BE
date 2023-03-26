@@ -50,16 +50,18 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   }
 
   // setup return, add shareConfiguration if none exist
-  if (linkOrFolderData.shareConfiguration.isShared === undefined) {
+  if (linkOrFolderData.shareConfiguration?.isShared === undefined) {
+    linkOrFolderData.shareConfiguration = {};
     linkOrFolderData.shareConfiguration.isShared = false;
   }
   if (linkOrFolderData.type === "folder") {
     if (linkOrFolderData.childrens) {
-      linkOrFolderData.childrens = linkOrFolderData.childrens.map((child: any) => {
-        if (child.shareConfiguration.isShared === undefined) {
-          child.shareConfiguration.isShared = false;
+      // iterate through childrens object, add shareConfiguration if none exist
+      Object.keys(linkOrFolderData.childrens).forEach((child: any) => {
+        if (linkOrFolderData.childrens[child].shareConfiguration?.isShared === undefined) {
+          linkOrFolderData.childrens[child].shareConfiguration = {};
+          linkOrFolderData.childrens[child].shareConfiguration.isShared = false;
         }
-        return child;
       });
     }
   }
