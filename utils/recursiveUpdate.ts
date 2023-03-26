@@ -1,6 +1,6 @@
-import { UpdatedData } from "../type";
+import { ShareConfiguration } from "../type/shareConfiguration";
 
-export async function recursiveUpdate(updatedParentRef: any, childrenName: string, updatedData: UpdatedData): Promise<{ isUpdated: boolean; error: string }> {
+export async function recursiveUpdate(updatedParentRef: any, childrenName: string, ShareConfiguration: ShareConfiguration): Promise<{ isUpdated: boolean; error: string }> {
   let parentData = await updatedParentRef.get();
   if (!parentData.exists) {
     return { isUpdated: false, error: "Root data doesn't exist" };
@@ -18,7 +18,7 @@ export async function recursiveUpdate(updatedParentRef: any, childrenName: strin
       [childrenName]: {
         ...parentData.childrens[childrenName],
         shareConfiguration: {
-          ...updatedData,
+          ...ShareConfiguration,
         },
       },
     },
@@ -43,7 +43,7 @@ export async function recursiveUpdate(updatedParentRef: any, childrenName: strin
   let updatedFolderData = {
     ...folderData,
     shareConfiguration: {
-      ...updatedData,
+      ...ShareConfiguration,
     },
   };
   await folderRef.update(updatedFolderData, { merge: true });
@@ -55,7 +55,7 @@ export async function recursiveUpdate(updatedParentRef: any, childrenName: strin
 
   // for every children, update the children
   for (let relativePath in updatedFolderData.childrens) {
-    const { isUpdated, error } = await recursiveUpdate(folderRef, relativePath, updatedData);
+    const { isUpdated, error } = await recursiveUpdate(folderRef, relativePath, ShareConfiguration);
     if (!isUpdated) {
       return { isUpdated: false, error };
     }

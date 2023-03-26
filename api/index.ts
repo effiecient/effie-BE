@@ -2,14 +2,15 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 import { getHello, userController, directoryController, authController } from "../controllers";
 import cors from "cors";
 
-import { allowCors, checkAuthExist, jsonParser } from "../middlewares";
+import { allowCors, addAuthUsernameToHeader, jsonParser } from "../middlewares";
 
 const app = require("express")();
 
 app.use(cors());
 app.use(allowCors);
+app.use(addAuthUsernameToHeader);
 
-app.get("/api", checkAuthExist, getHello);
+app.get("/api", getHello);
 
 // AUTH CONTROLLER
 app.post("/api/auth", authController.checkAuth);
