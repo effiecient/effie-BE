@@ -11,10 +11,11 @@ export function addAuthUsernameToHeader(req: any, res: any, next: any) {
   let decoded;
   try {
     const authHeader = req.headers.authorization;
+    console.log(authHeader);
     decoded = verifyTokenJWT(authHeader);
+    req.headers.username = decoded.username;
   } catch (err: any) {
-    return res.status(401).json({ status: STATUS_ERROR, message: "Failed to authenticate token." });
+    req.headers.username = undefined;
   }
-  req.headers.username = decoded.username;
   return next();
 }
