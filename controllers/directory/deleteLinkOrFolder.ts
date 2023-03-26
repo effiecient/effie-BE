@@ -5,13 +5,15 @@ import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
 export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
 
-  //TODO: check if user is authenticated
+  //validate: check if user is logged in
+  if (!req.headers.username) {
+    res.status(401).json({ status: STATUS_ERROR, message: "User not logged in." });
+    return;
+  }
 
   // parse the input and validate
   // read params
   const { username } = req.params;
-  // get from header, injected by middleware
-  // const { accessorUsername } = req;
 
   // read /api/directory/username/* path, remove empty strings
   let pathArray = req.params["0"].split("/").filter((path: any) => path !== "");
@@ -39,11 +41,23 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   }
   const parentData = parent.data();
   // validate: check if link exist
+  const sharedConfig = parentData.childrens[pathArray[pathArray.length - 1]].shareConfiguration;
   if (parentData.childrens[pathArray[pathArray.length - 1]] === undefined) {
     res.status(404).json({ status: STATUS_ERROR, message: "path not found.", path });
     return;
   }
-  // TODO: validate: check if the user has access to the link
+  // validate: check if the user has access. don't have access if it's not his own link and (it's not shared or it's shared but not with write access)
+  // there's a bug here. if the user is not the owner, and a folder with private childrens is shared with write access, the user will delete the children also.
+  // need to handle this.
+  // opt 1. delete all childrens recursively. (what we're doing currently. not good)
+  // opt 2. don't allow user to delete folder with private childrens. (expensive)
+  // opt 3. don't allow user to create a private childrens in shared folder. (user limitation. I am drawn to this one.)
+
+  if (username !== req.headers.username && (!sharedConfig || sharedConfig.sharedPrivilege !== "write")) {
+    res.status(401).json({ status: STATUS_ERROR, message: "User not authorized.", path });
+    return;
+  }
+
   // delete based on type
   let type = parentData.childrens[pathArray[pathArray.length - 1]].type;
   if (type === "folder") {
