@@ -33,7 +33,7 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     fileRef = fileRef.collection("childrens").doc(relativePath);
   });
 
-  // check if fileRef exists
+  // validate: check if fileRef exists
   const linkOrFolder = await fileRef.get();
   if (!linkOrFolder.exists) {
     res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
@@ -41,8 +41,37 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   }
 
   // get data
-  const linkOrFolderData = linkOrFolder.data();
+  let linkOrFolderData = linkOrFolder.data();
 
+  // validate: handle if not accessed by owner and private
+  if (req.headers.username !== username && !linkOrFolderData.isShared) {
+    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+    return;
+  }
+
+  // setup return, add shareConfiguration if none exist
+  if (linkOrFolderData.shareConfiguration.isShared === undefined) {
+    linkOrFolderData.shareConfiguration.isShared = false;
+  }
+  if (linkOrFolderData.type === "folder") {
+    if (linkOrFolderData.childrens) {
+      linkOrFolderData.childrens = linkOrFolderData.childrens.map((child: any) => {
+        if (child.shareConfiguration.isShared === undefined) {
+          child.shareConfiguration.isShared = false;
+        }
+        return child;
+      });
+    }
+  }
+  // hide private data
+  if (req.headers.username !== username) {
+    // if type is folder, check if childrens is shared. if not, remove childrens
+    if (linkOrFolderData.type === "folder") {
+      if (linkOrFolderData.childrens) {
+        linkOrFolderData.childrens = linkOrFolderData.childrens.filter((child: any) => child.isShared);
+      }
+    }
+  }
   // return
   res.json({ status: STATUS_SUCCESS, path, data: linkOrFolderData });
 }
