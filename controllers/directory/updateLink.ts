@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid } from "../../utils";
+import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
+import { isAnyDefined } from "../../utils/isAnyDefined";
+import { isShareConfiguration } from "../../typeValidator";
 
 // example of complete data
 // MUST HAVE USERNAME PATH and RELATIVE PATH
@@ -12,45 +14,71 @@ import { getDB, isRelativePathValid } from "../../utils";
 // const title = "Bing";
 // const isPinned = false;
 // const newRelativePath = "bing2";
+// const shareConfiguration: {
+//     isShared: true,
+//     sharedPrivilege: "read",
+//   },
+// };
 
 export async function updateLink(req: VercelRequest, res: VercelResponse) {
-  const { username, path, relativePath, link, title, isPinned, newRelativePath } = req.body;
+  const { username, path, relativePath, link, title, isPinned, newRelativePath, shareConfiguration } = req.body;
 
-  if (!username || !path || !relativePath) {
-    res.status(400).json({
+  // validate: must be logged in
+  if (req.headers.username === undefined) {
+    res.status(401).json({
       status: STATUS_ERROR,
-      message: "Invalid body. Username, path, and relativePath must be provided",
+      message: "Unauthorized.",
     });
     return;
   }
 
-  // check if at least one of the data is provided
-  if (isPinned === undefined && title === undefined && newRelativePath === undefined && link === undefined) {
+  // validate: check if username, path, and relativePath is provided
+  if (isAnyUndefined(username, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, link)",
+      message: "Invalid body. Username, path, and relativePath must be provided.",
     });
     return;
   }
 
-  //   check if path start with /
+  // validate: check if at least one of the data is provided
+  if (!isAnyDefined(isPinned, title, newRelativePath, shareConfiguration)) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, link, shareConfiguration).",
+    });
+    return;
+  }
+
+  // validate: check if path start with /
   if (path[0] !== "/") {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid path",
+      message: "Invalid path.",
     });
     return;
   }
-  // check if newRelativePath is valid
-  if (newRelativePath) {
+  // vadidate: check if newRelativePath is valid
+  if (newRelativePath !== undefined) {
     if (!isRelativePathValid(newRelativePath)) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "Invalid newRelativePath",
+        message: "Invalid newRelativePath.",
       });
       return;
     }
   }
+  // validate: check if shareConfig is valid format
+  if (shareConfiguration !== undefined) {
+    if (!isShareConfiguration(shareConfiguration)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid share configuration.",
+      });
+      return;
+    }
+  }
+  // validate body done
 
   //   get the db
   const { db } = getDB();
@@ -80,8 +108,28 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   }
 
   parentData = parentData.data();
-  // check if relativePath is actually a link
-  if (!parentData.childrens[relativePath].link) {
+  let linkData = parentData?.childrens[relativePath];
+
+  // validate: check if link exists
+  if (linkData === undefined) {
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: "Link not found.",
+    });
+    return;
+  }
+
+  // validate: check if has access. if not the owner, and (the folder is not shared or shared but not with read privilege), return error
+  if (req.headers.username !== username && (!linkData.isShared || (linkData.isShared && linkData.sharedPrivilege !== "read"))) {
+    res.status(403).json({
+      status: STATUS_ERROR,
+      message: "Forbidden.",
+    });
+    return;
+  }
+
+  // validate: check if relativePath is actually a link
+  if (!linkData.link) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid relativePath. It is not a link",
@@ -93,16 +141,15 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
 
   // 1. update the link in the parents children
   let updatedParentData = parentData;
-  updatedParentData.childrens[relativePath] = {
-    ...updatedParentData.childrens[relativePath],
-    ...{
-      link: link ? link : updatedParentData.childrens[relativePath].link,
-      title: title ? title : updatedParentData.childrens[relativePath].title,
-      isPinned: isPinned ? isPinned : updatedParentData.childrens[relativePath].isPinned,
-    },
-  };
+  let updated: any = { link, isPinned, title, shareConfiguration };
+  Object.keys(updated).forEach((key) => {
+    if (updated[key] !== undefined) {
+      updatedParentData.childrens[relativePath][key] = updated[key];
+    }
+  });
+
   // handle new relative path.
-  if (newRelativePath) {
+  if (newRelativePath !== undefined) {
     // check if newRelativePath is valid, which means it doesn't exist in the parent
     if (updatedParentData.childrens[newRelativePath]) {
       res.status(400).json({

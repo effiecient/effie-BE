@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid, recursiveCloneDocument, recursiveDeleteDocument, recursiveUpdate } from "../../utils";
-import { isUpdatedData } from "../../type";
+import { getDB, isAnyUndefined, isRelativePathValid, recursiveCloneDocument, recursiveDeleteDocument, recursiveUpdateDocumentShareConfiguration } from "../../utils";
+import { isShareConfiguration } from "../../typeValidator";
+import { isAnyDefined } from "../../utils/isAnyDefined";
 
 // example of complete data
 // const body = {
@@ -21,47 +22,55 @@ import { isUpdatedData } from "../../type";
 
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, title, isPinned, newRelativePath, shareConfiguration } = req.body;
-
-  if (!username || !path || !relativePath) {
+  // validate: must be logged in
+  if (req.headers.username === undefined) {
+    res.status(401).json({
+      status: STATUS_ERROR,
+      message: "Unauthorized",
+    });
+    return;
+  }
+  // validate: check if username, path, and relativePath is provided
+  if (isAnyUndefined(username, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body. Username, path, and relativePath must be provided",
     });
     return;
   }
-  console.log(isPinned, title, newRelativePath);
-  // check if at least one of the data is provided
-  if (isPinned === undefined && title === undefined && newRelativePath === undefined && shareConfiguration === undefined) {
+  // validate: check if at least one of the data is provided
+  if (!isAnyDefined(isPinned, title, newRelativePath, shareConfiguration)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, shareConfiguration)",
+      message: "Invalid body. At least one of the data must be provided (isPinned, title, newRelativePath, shareConfiguration).",
     });
     return;
   }
 
-  if (shareConfiguration) {
-    // shared config must be type of UpdatedData
-    if (!isUpdatedData({ shareConfiguration })) {
+  if (shareConfiguration !== undefined) {
+    // validate: shared config must be type of UpdatedData
+    if (!isShareConfiguration(shareConfiguration)) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "Invalid body. Shared config must be type of UpdatedData",
+        message: "Invalid share configuration.",
       });
       return;
     }
   }
-  //   check if path start with /
+  // validate: check if path start with /
   if (path[0] !== "/") {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid path",
+      message: "Invalid path.",
     });
     return;
   }
-  if (newRelativePath) {
+  // validate: check if relativePath is valid
+  if (newRelativePath !== undefined) {
     if (!isRelativePathValid(newRelativePath)) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "Invalid newRelativePath",
+        message: "Invalid newRelativePath.",
       });
       return;
     }
@@ -84,6 +93,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     parentRef = childRef;
   }
   let parentData = await parentRef.get();
+
+  // validate: check if the parent is exist
   if (!parentData.exists) {
     // if folder doesn't exist, break and return error
     res.status(404).json({
@@ -95,6 +106,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   // get the folder
   let folderRef = parentRef.collection("childrens").doc(relativePath);
   let folderData = await folderRef.get();
+  // validate: check if the folder is exist
   if (!folderData.exists) {
     res.status(404).json({
       status: STATUS_ERROR,
@@ -104,7 +116,17 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   }
   parentData = parentData.data();
   folderData = folderData.data();
-  // check if the folder is a folder
+
+  // validate: check if has access. if not the owner, and (the folder is not shared or shared but not with read privilege), return error
+  if (req.headers.username !== username && (!folderData.isShared || (folderData.isShared && folderData.sharedPrivilege !== "read"))) {
+    res.status(403).json({
+      status: STATUS_ERROR,
+      message: "Forbidden.",
+    });
+    return;
+  }
+
+  // validate: check if the folder is a folder
   if (folderData.type !== "folder") {
     res.status(400).json({
       status: STATUS_ERROR,
@@ -113,8 +135,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // check if the newRelativePath is already exist
-  if (newRelativePath) {
+  // validate: check if the newRelativePath is already exist
+  if (newRelativePath !== undefined) {
     if (parentData.childrens[newRelativePath]) {
       res.status(400).json({
         status: STATUS_ERROR,
@@ -126,11 +148,13 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   // at this point, we have valid parent and folder
 
   // 1. update the folder
-  let updatedFolderData = {
-    ...folderData,
-    isPinned: isPinned ? isPinned : folderData.isPinned,
-    title: title ? title : folderData.title,
-  };
+  let updatedFolderData = folderData;
+  let updated: any = { isPinned, title, shareConfiguration };
+  Object.keys(updated).forEach((key) => {
+    if (updated[key] !== undefined) {
+      updatedFolderData[key] = updated[key];
+    }
+  });
   await folderRef.update(updatedFolderData, { merge: true });
 
   // 2. update the parent. childrens is an object with relativePath as key and data as value
@@ -139,7 +163,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   delete updatedChildren[relativePath];
   // add the new relative path
   delete updatedFolderData.childrens;
-  updatedChildren[newRelativePath ? newRelativePath : relativePath] = {
+  updatedChildren[newRelativePath !== undefined ? newRelativePath : relativePath] = {
     ...updatedFolderData,
   };
   const updatedParentData = {
@@ -150,8 +174,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   await parentRef.update(updatedParentData, { merge: true });
 
   // handle update the shared config
-  if (shareConfiguration) {
-    const { isUpdated, error } = await recursiveUpdate(parentRef, relativePath, shareConfiguration);
+  if (shareConfiguration !== undefined) {
+    const { isUpdated, error } = await recursiveUpdateDocumentShareConfiguration(parentRef, relativePath, shareConfiguration);
     if (!isUpdated) {
       res.status(400).json({
         status: STATUS_ERROR,
@@ -161,7 +185,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     }
   }
   // handle new relative path
-  if (newRelativePath) {
+  if (newRelativePath !== undefined) {
     const { isCloned, error } = await recursiveCloneDocument(parentRef, relativePath, newRelativePath);
     if (!isCloned) {
       res.status(400).json({
