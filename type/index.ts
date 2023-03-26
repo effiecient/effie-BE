@@ -1,3 +1,1 @@
-export { isUpdatedData } from "./updatedData";
-
-export type { UpdatedData } from "./updatedData";
+export { ShareConfiguration } from "./shareConfiguration";
