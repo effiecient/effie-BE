@@ -27,21 +27,47 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     return;
   }
 
-  let fileRef = rootRef;
-  // for each path in pathArray, update the fileRef
-  pathArray.forEach((relativePath: any) => {
-    fileRef = fileRef.collection("childrens").doc(relativePath);
+  let parentRef = rootRef;
+  // for each path in pathArray, update the parentRef until 1 from last
+  pathArray.slice(0, pathArray.length - 1).forEach((relativePath: any) => {
+    parentRef = parentRef.collection("childrens").doc(relativePath);
   });
 
-  // validate: check if fileRef exists
-  const linkOrFolder = await fileRef.get();
-  if (!linkOrFolder.exists) {
+  // validate: check if parentRef exists
+  const parent = await parentRef.get();
+  if (!parent.exists) {
     res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
     return;
   }
 
   // get data
-  let linkOrFolderData = linkOrFolder.data();
+  let parentData = parent.data();
+  // check the children of parentData and get the last path in pathArray
+  if (!parentData.childrens) {
+    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+    return;
+  }
+  const linkOrFolderAsChildren = parentData.childrens[pathArray[pathArray.length - 1]];
+
+  // validate: check if linkOrFolderData exists
+  if (!linkOrFolderAsChildren) {
+    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+    return;
+  }
+
+  // if type is folder, get the folderRef
+  let linkOrFolderData: any;
+  if (linkOrFolderAsChildren.type === "folder") {
+    let linkOrFolderRef = parentRef.collection("childrens").doc(pathArray[pathArray.length - 1]);
+    const linkOrFolder = await linkOrFolderRef.get();
+    if (!linkOrFolder.exists) {
+      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+      return;
+    }
+    linkOrFolderData = linkOrFolder.data();
+  } else {
+    linkOrFolderData = linkOrFolderAsChildren;
+  }
 
   // validate: handle if not accessed by owner and private
   if (req.headers.username !== username && !linkOrFolderData.isShared) {
