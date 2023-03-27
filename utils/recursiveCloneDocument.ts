@@ -1,5 +1,6 @@
 // used when renaming relativePath
 
+// TODO: on failed, rollback
 export async function recursiveCloneDocument(parentRef: any, documentName: string, newDocumentName: string, documentPath: string = ""): Promise<{ isCloned: boolean; error: string }> {
   // get document
   let documentRef = parentRef.collection("childrens").doc(documentName);

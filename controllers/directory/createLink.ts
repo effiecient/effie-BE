@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isRelativePathValid } from "../../utils";
+import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
+import { isShareConfiguration } from "../../typeValidator";
 
 //   example data
 // const username = "christojeffrey";
@@ -10,20 +11,32 @@ import { getDB, isRelativePathValid } from "../../utils";
 // const relativePath = "bing";
 // const title = "Bing";
 // const isPinned = false;
+// const shareConfiguration = {isShared:false}
 
+// TODO: create based on parent share configuration
 export async function createLink(req: VercelRequest, res: VercelResponse) {
-  // parse the input and validate
-  // read body
-  const { username, link, path, relativePath, title, isPinned } = req.body;
-  if (!username || !link || !relativePath || !title || isPinned === undefined || !path) {
+  // validate: must be logged in to create link
+  if (req.headers.username === undefined) {
+    res.status(401).json({
+      status: STATUS_ERROR,
+      message: "Unauthorized",
+    });
+    return;
+  }
+  // validate: parse the body
+  let { username, link, path, relativePath, title, isPinned, shareConfiguration } = req.body;
+  if (isAnyUndefined(username, link, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body",
     });
     return;
   }
+  // handle default value
+  title = title === undefined ? title : relativePath;
+  isPinned = isPinned === undefined ? false : isPinned;
 
-  // check if path start with /
+  // validate: check if path start with /
   if (path[0] !== "/") {
     res.status(400).json({
       status: STATUS_ERROR,
@@ -31,13 +44,23 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-  // prevent spaces in relative path
+  // validate: prevent invalid characters in relative path
   if (!isRelativePathValid(relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid relative path. Spaces are not allowed",
+      message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
     });
     return;
+  }
+  // validate shareConfiguraiton
+  if (shareConfiguration !== undefined) {
+    if (!isShareConfiguration(shareConfiguration)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid share configuration.",
+      });
+      return;
+    }
   }
 
   //   get the db
@@ -56,6 +79,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
 
   // read the parent folder, add to field called link. Add to the array
   let parentData = await parentRef.get();
+  // validate: check if parent exists
   if (!parentData.exists) {
     res.status(404).json({
       status: STATUS_ERROR,
@@ -65,12 +89,21 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   }
   parentData = parentData.data();
 
+  // validate: if the user is not the owner and (the parent isShared = false or (isShared = true and doesn't have the privilage to write))
+  // then not permited
+  if (req.headers.username !== username && (!parentData.isShared || (parentData.isShared && parentData.sharedPrivilege !== "write"))) {
+    res.status(403).json({
+      status: STATUS_ERROR,
+      message: "Forbidden.",
+    });
+    return;
+  }
   // check if parentData object has childrens children
   if (!parentData.childrens) {
     parentData.childrens = {};
   }
   if (parentData.childrens[relativePath]) {
-    // this shouldn't happen. he created a duplicate relative path.
+    // validate: this shouldn't happen. he created a duplicate relative path.
     res.status(409).json({
       status: STATUS_ERROR,
       message: "Duplicate relative path",
@@ -78,11 +111,19 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // if req.body has shareConfig, use it. else if parent has shareConfig, use it. else, {isShared:false}
+  if (shareConfiguration !== undefined) {
+  } else if (parentData.shareConfiguration) {
+    shareConfiguration = parentData.shareConfiguration;
+  } else {
+    shareConfiguration = { isShared: false };
+  }
   parentData.childrens[relativePath] = {
     type: "link",
     isPinned,
     link,
     title,
+    shareConfiguration,
   };
 
   await parentRef.set(parentData, { merge: true });
