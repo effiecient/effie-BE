@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB } from "../../utils";
+import type { VercelResponse } from "@vercel/node";
+import { STATUS_SUCCESS, STATUS_ERROR } from "@/config";
+import { getDB } from "@/utils";
 
 export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled

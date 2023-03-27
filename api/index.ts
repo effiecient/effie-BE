@@ -1,8 +1,8 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { getHello, userController, directoryController, authController } from "../controllers";
+import { getHello, userController, directoryController, authController } from "@/controllers";
 import cors from "cors";
 
-import { allowCors, addAuthUsernameToHeader, jsonParser } from "../middlewares";
+import { allowCors, addAuthUsernameToHeader, jsonParser } from "@/middlewares";
 
 const app = require("express")();
 

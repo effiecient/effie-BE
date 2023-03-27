@@ -1,4 +1,4 @@
-import { ShareConfiguration } from "../type/shareConfiguration";
+import { ShareConfiguration } from "@/type/shareConfiguration";
 
 // TODO: on failed, rollback
 export async function recursiveUpdateDocumentShareConfiguration(updatedParentRef: any, childrenName: string, ShareConfiguration: ShareConfiguration): Promise<{ isUpdated: boolean; error: string }> {

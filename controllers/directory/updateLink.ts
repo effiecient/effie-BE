@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
-import { isAnyDefined } from "../../utils/isAnyDefined";
-import { isShareConfiguration } from "../../typeValidator";
+import { STATUS_SUCCESS, STATUS_ERROR } from "@/config";
+import { getDB, isAnyUndefined, isRelativePathValid } from "@/utils";
+import { isAnyDefined } from "@/utils/isAnyDefined";
+import { isShareConfiguration } from "@/typeValidator";
 
 // example of complete data
 // MUST HAVE USERNAME PATH and RELATIVE PATH

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
+import { STATUS_SUCCESS, STATUS_ERROR } from "@/config";
 import { getDB, isAnyUndefined, isRelativePathValid, recursiveCloneDocument, recursiveDeleteDocument, recursiveUpdateDocumentShareConfiguration } from "../../utils";
-import { isShareConfiguration } from "../../typeValidator";
-import { isAnyDefined } from "../../utils/isAnyDefined";
+import { isShareConfiguration } from "@/typeValidator";
+import { isAnyDefined } from "@/utils/isAnyDefined";
 
 // example of complete data
 // const body = {

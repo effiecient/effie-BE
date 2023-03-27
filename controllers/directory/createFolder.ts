@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
-import { isShareConfiguration } from "../../typeValidator";
+import { STATUS_SUCCESS, STATUS_ERROR } from "@/config";
+import { getDB, isAnyUndefined, isRelativePathValid } from "@/utils";
+import { isShareConfiguration } from "@/typeValidator";
 
 //   example data
 // TODO: create a type for req.body

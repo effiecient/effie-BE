@@ -1,6 +1,6 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB, recursiveDeleteDocument } from "../../utils";
-import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
+import { VercelResponse } from "@vercel/node";
+import { getDB, recursiveDeleteDocument } from "@/utils";
+import { STATUS_ERROR, STATUS_SUCCESS } from "@/config";
 
 export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createTokenJWT, getFirebaseAuth, getUsernameById } from "../../utils";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
+import { createTokenJWT, getFirebaseAuth, getUsernameById } from "@/utils";
+import { STATUS_SUCCESS, STATUS_ERROR } from "@/config";
 
 export async function login(req: VercelRequest, res: VercelResponse) {
   // body contains uid
