@@ -157,22 +157,6 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   });
   await folderRef.update(updatedFolderData, { merge: true });
 
-  // 2. update the parent. childrens is an object with relativePath as key and data as value
-  let updatedChildren = parentData.childrens;
-  // delete the old relative path
-  delete updatedChildren[relativePath];
-  // add the new relative path
-  delete updatedFolderData.childrens;
-  updatedChildren[newRelativePath !== undefined ? newRelativePath : relativePath] = {
-    ...updatedFolderData,
-  };
-  const updatedParentData = {
-    ...parentData,
-    childrens: updatedChildren,
-  };
-
-  await parentRef.update(updatedParentData, { merge: true });
-
   // handle update the shared config
   if (shareConfiguration !== undefined) {
     const { isUpdated, error } = await recursiveUpdateDocumentShareConfiguration(parentRef, relativePath, shareConfiguration);
@@ -204,6 +188,20 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
       return;
     }
   }
+  // 2. update the parent. childrens is an object with relativePath as key and data as value
+  let updatedChildren = parentData.childrens;
+  // delete the old relative path
+  delete updatedChildren[relativePath];
+  // add the new relative path
+  delete updatedFolderData.childrens;
+  updatedChildren[newRelativePath !== undefined ? newRelativePath : relativePath] = {
+    ...updatedFolderData,
+  };
+  const updatedParentData = {
+    ...parentData,
+    childrens: updatedChildren,
+  };
+  await parentRef.update(updatedParentData, { merge: true });
 
   res.status(200).json({
     status: STATUS_SUCCESS,
