@@ -46,3 +46,6 @@ git remote set-url origin --push --add https://github.com/effiecient/effie-BE.gi
 7. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
 8. Push your changes to the remote branch with `git push`.
 9. Create a pull request for your branch to `main` branch.
+
+## Flow Visualization
+![Flow Visualization](flow-vis.jpg)
