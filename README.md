@@ -43,6 +43,6 @@ git remote set-url origin --push --add https://github.com/effiecient/effie-BE.gi
 4. Do your task.
 5. Commit your changes with `git add .` and `git commit -m "<commit-message>"`.
 6. Push your changes to the remote branch with `git push`.
-7. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch with `git merge <branch-name>`.
+7. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
 8. Push your changes to the remote branch with `git push`.
 9. Create a pull request for your branch to `main` branch.
