@@ -28,7 +28,11 @@ export default function checkAuth(req: any, res: any) {
   }
 
   if (decoded) {
-    res.status(200).json({ success: true, username: decoded.username });
+    if (decoded.photoURL === undefined) {
+      res.status(200).json({ success: true, username: decoded.username });
+    } else {
+      res.status(200).json({ success: true, username: decoded.username, photoURL: decoded.photoURL });
+    }
   } else {
     res.status(401).json({ success: false, message: "Invalid token." });
   }
