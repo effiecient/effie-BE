@@ -4,7 +4,7 @@ import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function register(req: VercelRequest, res: VercelResponse) {
   // body contains uid
-  const { uid, username } = req.body;
+  const { uid, username, photoURL } = req.body;
   const accessToken = req.headers.authorization;
 
   // check if body contains uid and username
@@ -55,7 +55,11 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await userRef.doc(uid).set({ username });
+    if (photoURL !== undefined) {
+      await userRef.doc(uid).set({ username, photoURL });
+    } else {
+      await userRef.doc(uid).set({ username });
+    }
   } catch (error) {
     return res.status(500).json({
       status: STATUS_ERROR,

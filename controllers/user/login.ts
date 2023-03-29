@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createTokenJWT, getFirebaseAuth, getUsernameById } from "../../utils";
+import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function login(req: VercelRequest, res: VercelResponse) {
   // body contains uid
-  const { uid } = req.body;
+  const { uid, photoURL } = req.body;
   const accessToken = req.headers.authorization;
   // check if body contains uid
   if (uid === undefined) {
@@ -48,12 +48,19 @@ export async function login(req: VercelRequest, res: VercelResponse) {
       message: `User ID ${uid} does not have a username`,
     });
   }
+  // update photo
+  if (photoURL !== undefined) {
+    const { db } = getDB();
+    const userRef = db.collection("users");
+    await userRef.doc(uid).update({ photoURL }, { merge: true });
+  }
+
   // make jwt token
   const payload = { uid, username, environment: process.env.NODE_ENV };
   // TODO: clean console.log
   console.log("payload", payload);
 
-  const token = await createTokenJWT(payload, "168h");
+  const token = createTokenJWT(payload, "168h");
   res.status(200).json({
     status: STATUS_SUCCESS,
     token,
