@@ -43,26 +43,25 @@ git remote set-url origin --push --add https://github.com/effiecient/effie-BE.gi
 ## What to Do After Getting a Task
 ### Setup
 1. Go to branch `main` and pull the latest changes with `git pull`.
-2. Setup your environment by creating an `.env` file. (See `.env.example` for reference)
+2. Setup your environment by creating a `.env` file. (See `.env.example` for reference)
 
 ### Running Locally
-1. Go to your branch with command `git checkout <branch-name>`.
-2. Pull the latest changes with `git pull`.
-3. Setup your hosts file first
+1. Setup your hosts file first
     - For windows, go to `C:\Windows\System32\drivers\etc\hosts` and add `127.0.0.1 www.example.com <your-username>.example.com`
     - For linux, go to `/etc/hosts` and add `127.0.0.1 www.example.com <your-username>.example.com`
-4. Run `npm install` to install all dependencies.
-5. Run `npm run dev` to start the development server.
+2. Run `npm install` to install all dependencies.
+3. Run `npm run dev` to start the development server.
 
 
 ### Workflow
-1. Go to your branch with command `git checkout <branch-name>`.
-2. Do your task.
-3. Commit your changes with `git add .` and `git commit -m "<commit-message>"`.
-4. Push your changes to the remote branch with `git push`.
-5. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
-6. Push your changes to the remote branch with `git push`.
-7. Create a pull request for your branch to `main` branch.
+1. Go to branch `main` and pull the latest changes with `git pull`.
+2. Create a new branch with `git checkout -b <branch-name>`. The `branch-name` should follow the convention e.g. `feat/login` or `fix/register`
+3. Do your task.
+4. Commit your changes with `git add .` and `git commit -m "<commit-message>"`.
+5. Push your changes to the remote branch with `git push`.
+6. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
+7. Push your changes in `dev` to the remote branch with `git push`.
+8. Create a pull request for your branch to `main` branch.
 
 ### Releasing
 1. Go to branch `main` and pull the latest changes with `git pull`.
