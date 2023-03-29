@@ -4,6 +4,10 @@
     - [For SSH](#for-ssh)
     - [For HTTPS](#for-https)
 - [What to Do After Getting a Task](#what-to-do-after-getting-a-task)
+    - [Setup](#setup)
+    - [Running Locally](#running-locally)
+    - [Workflow](#workflow)
+    - [Releasing](#releasing)
 
 ## How to Clone and Setup Repos
 ### For SSH
@@ -37,15 +41,36 @@ git remote set-url origin --push --add https://github.com/effiecient/effie-BE.gi
 ```
 
 ## What to Do After Getting a Task
+### Setup
 1. Go to branch `main` and pull the latest changes with `git pull`.
-2. Create a new branch with `git checkout -b <branch-name>`. (e.g. `git checkout -b feat/login`)
-3. Setup your environment by creating an `.env` file. (See `.env.example` for reference)
-4. Do your task.
-5. Commit your changes with `git add .` and `git commit -m "<commit-message>"`.
+2. Setup your environment by creating an `.env` file. (See `.env.example` for reference)
+
+### Running Locally
+1. Go to your branch with command `git checkout <branch-name>`.
+2. Pull the latest changes with `git pull`.
+3. Setup your hosts file first
+    - For windows, go to `C:\Windows\System32\drivers\etc\hosts` and add `127.0.0.1 www.example.com <your-username>.example.com`
+    - For linux, go to `/etc/hosts` and add `127.0.0.1 www.example.com <your-username>.example.com`
+4. Run `npm install` to install all dependencies.
+5. Run `npm run dev` to start the development server.
+
+
+### Workflow
+1. Go to your branch with command `git checkout <branch-name>`.
+2. Do your task.
+3. Commit your changes with `git add .` and `git commit -m "<commit-message>"`.
+4. Push your changes to the remote branch with `git push`.
+5. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
 6. Push your changes to the remote branch with `git push`.
-7. Go to branch `dev` with command `git checkout dev` and pull the latest changes with `git pull`. Then, merge your branch and squash it with `git merge --squash <branch-name>`.
-8. Push your changes to the remote branch with `git push`.
-9. Create a pull request for your branch to `main` branch.
+7. Create a pull request for your branch to `main` branch.
+
+### Releasing
+1. Go to branch `main` and pull the latest changes with `git pull`.
+2. Create a tag with `git tag -a <tag-name>`.
+3. Push your changes to the remote branch with `git push`.
+4. Go to gitlab page to release the tag.
+5. Reset the dev branch, go to branch `dev` and pull the latest changes with `git pull`.
+6. Reset the dev branch with `git reset --hard <tag-name>`.
 
 ## Flow Visualization
 ![Flow Visualization](flow-vis.jpg)
