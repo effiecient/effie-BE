@@ -4,7 +4,7 @@ import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
 export async function register(req: VercelRequest, res: VercelResponse) {
   // body contains uid
-  const { uid, username } = req.body;
+  const { uid, username, photoURL } = req.body;
   const accessToken = req.headers.authorization;
 
   // check if body contains uid and username
@@ -55,7 +55,11 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await userRef.doc(uid).set({ username });
+    if (photoURL !== undefined) {
+      await userRef.doc(uid).set({ username, photoURL });
+    } else {
+      await userRef.doc(uid).set({ username });
+    }
   } catch (error) {
     return res.status(500).json({
       status: STATUS_ERROR,
@@ -73,7 +77,10 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
   // make jwt token
-  const payload = { uid, username, environment: process.env.NODE_ENV };
+  let payload: any = { uid, username, environment: process.env.NODE_ENV };
+  if (photoURL !== undefined) {
+    payload = { ...payload, photoURL };
+  }
   // TODO: clean console.log
   console.log("payload", payload);
   const token = await createTokenJWT(payload, "168h");
