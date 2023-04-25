@@ -102,5 +102,6 @@
 
     // specifiy the root of the project
     "outDir": "./dist"
-  }
+  },
+  "include": ["**/*"],
 }
