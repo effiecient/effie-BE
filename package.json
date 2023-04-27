@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha 'test/**/*.ts' --require ts-node/register --timeout 999999 --exit",
+    "test": "mocha 'test/**/*.ts' --require ts-node/register --require dotenv/config --timeout 999999 --exit",
     "build": "npx tsc",
     "start": "node dist/local.js",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/local.js\""
