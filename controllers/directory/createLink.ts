@@ -144,7 +144,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     isPinned,
     publicAccess,
     personalAccess,
-    createdOn: new Date(),
+    createdAt: new Date(),
     lastModified: new Date(),
     lastModifiedBy: req.headers.username,
   };

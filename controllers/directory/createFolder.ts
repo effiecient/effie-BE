@@ -139,7 +139,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     linkCount: 0,
     folderCount: 0,
     children: {},
-    createdOn: new Date(),
+    createdAt: new Date(),
     lastModified: new Date(),
     lastModifiedBy: req.headers.username,
   };

@@ -91,5 +91,9 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     });
   }
 
-  res.json({ status: STATUS_SUCCESS, path, data: linkOrFolderData });
+  // 5. convert timestamp to date
+  linkOrFolderData.createdAt = linkOrFolderData.createdAt.toDate();
+  linkOrFolderData.updatedAt = linkOrFolderData.updatedAt.toDate();
+
+  res.json({ status: STATUS_SUCCESS, data: linkOrFolderData });
 }

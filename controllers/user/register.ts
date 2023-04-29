@@ -97,7 +97,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     isPinned: false,
     publicAccess: "none",
     personalAccess: [],
-    createdOn: new Date(),
+    createdAt: new Date(),
     lastModified: new Date(),
     lastModifiedBy: req.headers.username,
     linkCount: 0,
