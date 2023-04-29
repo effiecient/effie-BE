@@ -77,10 +77,12 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     tree = {
       root: {
         id: rootId,
+        type: "folder",
       },
     };
+    await userDirectoryRef.set({ tree });
   } else {
-    tree = userDirectoryData.tree;
+    tree = userDirectoryData.data().tree;
   }
   //   get the parent of the link ref
   // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
@@ -90,14 +92,21 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   let parentDataInTree = tree.root;
   for (let i = 0; i < pathArray.length; i++) {
     const folderName = pathArray[i];
+    let temporaryPath = "";
+    for (let j = 0; j <= i; j++) {
+      temporaryPath += "/" + pathArray[j];
+    }
+    if (parentDataInTree.children === undefined) {
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${path} does not exist`,
+      });
+      return;
+    }
+
     if (folderName in parentDataInTree.children) {
       parentDataInTree = parentDataInTree.children[folderName];
     } else {
-      let temporaryPath = "";
-      for (let j = 0; j <= i; j++) {
-        temporaryPath += "/" + pathArray[j];
-      }
-
       res.status(404).json({
         status: STATUS_ERROR,
         message: `${temporaryPath} does not exist`,
@@ -112,6 +121,10 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
       message: `${path} is not a folder`,
     });
     return;
+  }
+
+  if (parentDataInTree.children === undefined) {
+    parentDataInTree.children = {};
   }
 
   let parentId = parentDataInTree.id;
@@ -141,7 +154,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   // 5. create the document for the link with random id. if public and personal access is undefined, use the parent's public and personal access
 
   // handle default value
-  title = title === undefined ? title : relativePath;
+  title = title === undefined ? relativePath : title;
   isPinned = isPinned === undefined ? false : isPinned;
   publicAccess = publicAccess === undefined ? newParentData.publicAccess : publicAccess;
   personalAccess = personalAccess === undefined ? newParentData.personalAccess : personalAccess;
@@ -181,7 +194,9 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     type: "link",
   };
 
-  await userDirectoryRef.update({ tree });
+  console.log("tree");
+  console.log(tree);
+  await userDirectoryRef.set({ tree });
 
   res.status(200).json({
     status: STATUS_SUCCESS,
