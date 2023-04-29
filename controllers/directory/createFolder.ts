@@ -3,20 +3,9 @@ import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
 import { isShareConfiguration } from "../../typeValidator";
 
-//   example data
-// TODO: create a type for req.body
-// const username = "christojeffrey";
-
-// const path = "/";
-// const relativePath = "searchEngines";
-// const title = "Search Engines";
-// const isPinned = false;
-// shareConfiguration={isShared:false}
-
-// TODO: create share configuration based on parent share configuration
-// TODO: handle body validation better. for example, making sure title is string. https://github.com/icebob/fastest-validator
 export async function createFolder(req: VercelRequest, res: VercelResponse) {
-  // validate: is logged in
+  // 1. PARSE INPUT: Authenctation and body
+  // validate: must be logged in to create link
   if (req.headers.username === undefined) {
     res.status(401).json({
       status: STATUS_ERROR,
@@ -24,18 +13,15 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-  // validate: body
-  let { username, path, relativePath, title, isPinned, shareConfiguration } = req.body;
+  // validate: parse the body
+  let { username, path, relativePath, title, isPinned, publicAccess, personalAccess } = req.body;
   if (isAnyUndefined(username, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body",
+      message: "Invalid body. please refer to the documentation for the correct format.",
     });
     return;
   }
-  // handle default value
-  title = title === undefined ? relativePath : title;
-  isPinned = isPinned === undefined ? false : isPinned;
 
   // validate: check if path start with /
   if (path[0] !== "/") {
@@ -45,99 +31,164 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-  // validate: check relative path is valid
+  // validate: prevent invalid characters in relative path
   if (!isRelativePathValid(relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid relative path. Spaces are not allowed",
+      message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
     });
     return;
   }
-  // validate: check if shareConfiguration valid
-  if (shareConfiguration !== undefined) {
-    if (!isShareConfiguration(shareConfiguration)) {
-      res.status(400).json({
+
+  //2. check if the parent folder exists
+  const { db } = getDB();
+
+  let tree;
+  const userDirectoryRef = db.collection("linked-directories").doc(username);
+  const userDirectoryData = await userDirectoryRef.get();
+  if (!userDirectoryData.exists) {
+    tree = {};
+    // create root document with generated ID
+    const rootRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
+    const rootId = rootRef.id;
+    const rootData = {
+      id: rootId,
+      type: "folder",
+      title: "root",
+      isPinned: false,
+      publicAccess: "none",
+      personalAccess: [],
+      createdOn: new Date(),
+      lastModified: new Date(),
+      lastModifiedBy: req.headers.username,
+      linkCount: 0,
+      folderCount: 0,
+      children: {},
+    };
+    await rootRef.set(rootData);
+    tree = {
+      root: {
+        id: rootId,
+        type: "folder",
+        children: {},
+      },
+    };
+    await userDirectoryRef.set({ tree });
+  } else {
+    tree = userDirectoryData.data().tree;
+  }
+  //   get the parent of the link ref
+  // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
+  const pathArray = path.split("/").filter((item: any) => item !== "");
+
+  // validate: check if the parent exists
+  let parentDataInTree = tree.root;
+  for (let i = 0; i < pathArray.length; i++) {
+    const folderName = pathArray[i];
+    let temporaryPath = "";
+    for (let j = 0; j <= i; j++) {
+      temporaryPath += "/" + pathArray[j];
+    }
+    if (parentDataInTree.children === undefined) {
+      res.status(404).json({
         status: STATUS_ERROR,
-        message: "Invalid share configuration.",
+        message: `${path} does not exist`,
+      });
+      return;
+    }
+
+    if (folderName in parentDataInTree.children) {
+      parentDataInTree = parentDataInTree.children[folderName];
+    } else {
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${temporaryPath} does not exist`,
       });
       return;
     }
   }
-
-  //   get the db
-  const { db } = getDB();
-  // get the parent of the link ref
-  // turn path from "/" or "/testing"or "/testing/another" ["testing", "another"]
-  const pathArray = path.split("/").filter((item: any) => item !== "");
-  // get the parent of the link. if it doesn't exist, create it
-  const directoryRootRef = db.collection("directories").doc(username);
-  let parentRef = directoryRootRef;
-  for (let i = 0; i < pathArray.length; i++) {
-    const pathItem = pathArray[i];
-    const childRef = parentRef.collection("childrens").doc(pathItem);
-    parentRef = childRef;
-  }
-
-  // read the parent folder, add to field called link. Add to the array
-  let parentData = await parentRef.get();
-  if (!parentData.exists) {
-    res.status(404).json({
+  // validate: check if parentDataInTree.type === "folder"
+  if (parentDataInTree.type !== "folder") {
+    res.status(400).json({
       status: STATUS_ERROR,
-      message: "Parent not found",
+      message: `${path} is not a folder`,
     });
     return;
   }
 
-  parentData = parentData.data();
-  // validate: if the user is not the owner and (the parent isShared = false or (isShared = true and doesn't have the privilage to write))
-  // then not permited
-  if (req.headers.username !== username && (!parentData.isShared || (parentData.isShared && parentData.sharedPrivilege !== "write"))) {
+  let parentId = parentDataInTree.id;
+
+  // 3. check if has permission to create link in the parent folder
+  const parentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
+  let newParentData = await parentRef.get();
+  newParentData = newParentData.data();
+  // validate: check if the user has permission to create link in the parent folder. if not the owner, public access is not write,the user is not in the personal access list with write access, return 403
+  // personal access is an array of objects {username: string, access: string}
+  if (req.headers.username !== username && newParentData.publicAccess !== "write" && !newParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
     res.status(403).json({
       status: STATUS_ERROR,
-      message: "Forbidden.",
+      message: `You do not have permission to create link in ${path}`,
     });
     return;
-  }
-  // check if parentData object has childrens children
-  if (!parentData.childrens) {
-    parentData.childrens = {};
-  }
-  if (parentData.childrens[relativePath]) {
-    // this shouldn't happen. he created a duplicate relative path.
-    res.status(409).json({
-      status: STATUS_ERROR,
-      message: "Duplicate relative path",
-    });
-    return;
-  }
-  // if req.body has shareConfig, use it. else if parent has shareConfig, use it. else, {isShared:false}
-  if (shareConfiguration !== undefined) {
-  } else if (parentData.shareConfiguration) {
-    shareConfiguration = parentData.shareConfiguration;
-  } else {
-    shareConfiguration = { isShared: false };
   }
 
-  const folderData = {
+  // 4. validate: check if the link already exists
+  if (relativePath in parentDataInTree.children) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: `${relativePath} already exists in ${path}`,
+    });
+    return;
+  }
+  // 5. create the document for the link with random id. if public and personal access is undefined, use the parent's public and personal access
+
+  // handle default value
+  title = title === undefined ? relativePath : title;
+  isPinned = isPinned === undefined ? false : isPinned;
+  publicAccess = publicAccess === undefined ? newParentData.publicAccess : publicAccess;
+  personalAccess = personalAccess === undefined ? newParentData.personalAccess : personalAccess;
+
+  const newFolderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
+  const newFolderId = newFolderRef.id;
+  const newFolderData = {
+    id: newFolderId,
+    type: "folder",
     title,
     isPinned,
+    publicAccess,
+    personalAccess,
+    linkCount: 0,
+    folderCount: 0,
+    children: {},
+    createdOn: new Date(),
+    lastModified: new Date(),
+    lastModifiedBy: req.headers.username,
+  };
+  await newFolderRef.set(newFolderData);
+
+  // 6. update the parent document children array, lastModified, lastModifiedBy, linkCount
+  newParentData.lastModified = newFolderData.lastModified;
+  newParentData.lastModifiedBy = req.headers.username;
+  newParentData.folderCount += 1;
+  newParentData.children[relativePath] = newFolderData;
+
+  await parentRef.update(newParentData);
+
+  // 7. update the tree in the path from root. add id and type to the tree
+  let currentDataInTree = tree.root;
+  for (let i = 0; i < pathArray.length; i++) {
+    const folderName = pathArray[i];
+    currentDataInTree = currentDataInTree.children[folderName];
+  }
+  currentDataInTree.children[relativePath] = {
+    id: newFolderId,
     type: "folder",
-    shareConfiguration,
+    children: {},
   };
 
-  // add the folder to the parent
-  parentData.childrens[relativePath] = folderData;
+  await userDirectoryRef.set({ tree });
 
-  // update the parent
-  await parentRef.update(parentData, { merge: true });
-
-  // create a new documents inside the childrens collection
-  const folderRef = parentRef.collection("childrens").doc(relativePath);
-
-  await folderRef.set(folderData);
-
-  res.status(201).json({
+  res.status(200).json({
     status: STATUS_SUCCESS,
-    data: folderData,
   });
 }

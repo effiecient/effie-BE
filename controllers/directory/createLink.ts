@@ -4,7 +4,6 @@ import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
 
 export async function createLink(req: VercelRequest, res: VercelResponse) {
   // 1. PARSE INPUT: Authenctation and body
-
   // validate: must be logged in to create link
   if (req.headers.username === undefined) {
     res.status(401).json({
@@ -18,7 +17,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   if (isAnyUndefined(username, link, path, relativePath)) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid body",
+      message: "Invalid body. please refer to the documentation for the correct format.",
     });
     return;
   }
@@ -121,10 +120,6 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
       message: `${path} is not a folder`,
     });
     return;
-  }
-
-  if (parentDataInTree.children === undefined) {
-    parentDataInTree.children = {};
   }
 
   let parentId = parentDataInTree.id;
