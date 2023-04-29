@@ -52,6 +52,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
       status: STATUS_ERROR,
       message: "User does not exist",
     });
+    return;
   } else {
     tree = userDirectoryData.data().tree;
   }
