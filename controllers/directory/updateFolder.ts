@@ -4,22 +4,6 @@ import { getDB, isAnyUndefined, isRelativePathValid, recursiveCloneDocument, rec
 import { isShareConfiguration } from "../../typeValidator";
 import { isAnyDefined } from "../../utils/isAnyDefined";
 
-// example of complete data
-// const body = {
-//   // MUST HAVE USERNAME PATH and RELATIVE PATH
-//   username: "christojeffrey",
-//   path: "/",
-//   relativePath: "a",
-//   // data below is optional. at least one of them must be provided
-//   isPinned: false,
-//   title: "A",
-//   newRelativePath: "b",
-//   shareConfiguration: {
-//     isShared: true,
-//     sharedPrivilege: "read",
-//   },
-// };
-
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, title, isPinned, newRelativePath, shareConfiguration } = req.body;
   // validate: must be logged in

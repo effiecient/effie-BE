@@ -13,94 +13,83 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
 
   const path = "/" + pathArray.join("/");
 
-  // 2. get the link or folder id
+  // 2. check if path exists
   const { db } = getDB();
-
-  // get rootRef
-  const rootRef = db.collection("linked-directories").doc(username);
-
-  // validate: check if username exists
-  const root = await rootRef.get();
-  if (!root.exists) {
-    res.status(404).json({ status: STATUS_ERROR, message: "User not found.", path });
+  let tree;
+  const userDirectoryRef = db.collection("linked-directories").doc(username);
+  const userDirectoryData = await userDirectoryRef.get();
+  if (!userDirectoryData.exists) {
+    // error: user doesn't exist
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: "User does not exist",
+    });
     return;
+  } else {
+    tree = userDirectoryData.data().tree;
   }
-  // get the tree
-  const tree = root.data().tree;
 
-  // traverse the tree, get the link or folder id
-  let linkOrFolderId: any = tree;
+  // get the link or folder ref
+
+  let linkOrFolderDataInTree = tree.root;
   for (let i = 0; i < pathArray.length; i++) {
-    if (linkOrFolderId[pathArray[i]]) {
-      linkOrFolderId = linkOrFolderId[pathArray[i]];
+    const folderName = pathArray[i];
+    let temporaryPath = "";
+    for (let j = 0; j <= i; j++) {
+      temporaryPath += "/" + pathArray[j];
+    }
+    if (linkOrFolderDataInTree.children === undefined) {
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${path} not available or you don't have permission to read`,
+      });
+      return;
+    }
+
+    if (folderName in linkOrFolderDataInTree.children) {
+      linkOrFolderDataInTree = linkOrFolderDataInTree.children[folderName];
     } else {
-      res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${temporaryPath} not available or you don't have permission to read`,
+      });
       return;
     }
   }
 
-  // 3. get the link or folder data
-  // get the link or folder ref
-  const linkOrFolderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(linkOrFolderId);
+  // 3. check if has permission to read
+  const linkOrFolderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(linkOrFolderDataInTree.id);
+  let linkOrFolderData = await linkOrFolderRef.get();
+  linkOrFolderData = linkOrFolderData.data();
 
-  // get the link or folder data
-  const linkOrFolderData = await linkOrFolderRef.get();
-  if (!linkOrFolderData.exists) {
-    res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+  // validate: check if the user has permission to read. if not the owner, public access is not read or write, the user is not in the personal access list with read or write access, return 403
+  // personal access is an array of objects {username: string, access: string}
+  if (
+    req.headers.username !== username &&
+    linkOrFolderData.publicAccess !== "read" &&
+    linkOrFolderData.publicAccess !== "write" &&
+    !linkOrFolderData.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "read" || item.access === "write"))
+  ) {
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: `${path} not available or you don't have permission to read`,
+    });
     return;
   }
 
-  // validate: handle if not accessed by owner and private
-  // if (req.headers.username !== username && !linkOrFolderData.data().shareConfiguration?.isShared) {
-  //   res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
+  // 4. hide private data
+  // if the user is not the owner and type is folder, hide children if public access is not read or write, and personal access to the user is not read or write
+  if (req.headers.username !== username && linkOrFolderData.type === "folder") {
+    linkOrFolderData.children = linkOrFolderData.children.filter((child: any) => {
+      if (child.publicAccess === "read" || child.publicAccess === "write") {
+        return true;
+      } else if (child.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "read" || item.access === "write"))) {
+        return true;
+      } else {
+        return false;
+      }
+    });
+  }
 
-  // // at this point, the important variable is linkOrFolderData
-
-  // // validate: handle if not accessed by owner and private
-  // if (req.headers.username !== username && !linkOrFolderData.shareConfiguration?.isShared) {
-  //   res.status(404).json({ status: STATUS_ERROR, message: "File not found.", path });
-  //   return;
-  // }
-
-  // // setup return, add shareConfiguration if none exist
-  // if (linkOrFolderData.shareConfiguration?.isShared === undefined) {
-  //   linkOrFolderData.shareConfiguration = {};
-  //   linkOrFolderData.shareConfiguration.isShared = false;
-  // } else {
-  //   // if shared but without sharedPrivilege, add read
-  //   if (linkOrFolderData.shareConfiguration.sharedPrivilege === undefined) {
-  //     linkOrFolderData.shareConfiguration.sharedPrivilege = "read";
-  //   }
-  // }
-  // if (linkOrFolderData.type === "folder") {
-  //   if (linkOrFolderData.childrens) {
-  //     // iterate through childrens object, add shareConfiguration if none exist
-  //     Object.keys(linkOrFolderData.childrens).forEach((child: any) => {
-  //       if (linkOrFolderData.childrens[child].shareConfiguration?.isShared === undefined) {
-  //         linkOrFolderData.childrens[child].shareConfiguration = {};
-  //         linkOrFolderData.childrens[child].shareConfiguration.isShared = false;
-  //       } else {
-  //         // if shared but without sharedPrivilege, add read
-  //         if (linkOrFolderData.childrens[child].shareConfiguration.sharedPrivilege === undefined) {
-  //           linkOrFolderData.childrens[child].shareConfiguration.sharedPrivilege = "read";
-  //         }
-  //       }
-  //     });
-  //   }
-  // }
-  // // hide private data
-  // if (req.headers.username !== username) {
-  //   // if type is folder, check if childrens is shared. if not, remove childrens
-  //   if (linkOrFolderData.type === "folder") {
-  //     if (linkOrFolderData.childrens) {
-  //       Object.keys(linkOrFolderData.childrens).forEach((child: any) => {
-  //         if (!linkOrFolderData.childrens[child].shareConfiguration.isShared) {
-  //           delete linkOrFolderData.childrens[child];
-  //         }
-  //       });
-  //     }
-  //   }
-  // }
-  // // return
   res.json({ status: STATUS_SUCCESS, path, data: linkOrFolderData });
 }
