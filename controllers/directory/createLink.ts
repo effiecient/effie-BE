@@ -54,32 +54,11 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   const userDirectoryRef = db.collection("linked-directories").doc(username);
   const userDirectoryData = await userDirectoryRef.get();
   if (!userDirectoryData.exists) {
-    tree = {};
-    // create root document with generated ID
-    const rootRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
-    const rootId = rootRef.id;
-    const rootData = {
-      id: rootId,
-      type: "folder",
-      title: "root",
-      isPinned: false,
-      publicAccess: "none",
-      personalAccess: [],
-      createdOn: new Date(),
-      lastModified: new Date(),
-      lastModifiedBy: req.headers.username,
-      linkCount: 0,
-      folderCount: 0,
-      children: {},
-    };
-    await rootRef.set(rootData);
-    tree = {
-      root: {
-        id: rootId,
-        type: "folder",
-      },
-    };
-    await userDirectoryRef.set({ tree });
+    // error: user doesn't exist
+    res.status(404).json({
+      status: STATUS_ERROR,
+      message: "User does not exist",
+    });
   } else {
     tree = userDirectoryData.data().tree;
   }
