@@ -77,7 +77,25 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     return;
   }
 
-  // 4. hide private data
+  // 4. return children as array and add relativePath as key
+  if (linkOrFolderData.children) {
+    linkOrFolderData.children = Object.keys(linkOrFolderData.children).map((key) => {
+      return { ...linkOrFolderData.children[key], relativePath: key };
+    });
+    // return as array
+    linkOrFolderData.children = Object.values(linkOrFolderData.children);
+    // sort by relativePath
+    linkOrFolderData.children.sort((a: any, b: any) => {
+      if (a.relativePath < b.relativePath) {
+        return -1;
+      }
+      if (a.relativePath > b.relativePath) {
+        return 1;
+      }
+      return 0;
+    });
+  }
+  // 5. hide private data
   // if the user is not the owner and type is folder, hide children if public access is not read or write, and personal access to the user is not read or write
   if (req.headers.username !== username && linkOrFolderData.type === "folder") {
     linkOrFolderData.children = linkOrFolderData.children.filter((child: any) => {
@@ -90,14 +108,16 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
       }
     });
   }
-
-  // 5. convert timestamp to date
+  // 6. add path to link or folder data
+  linkOrFolderData.path = path;
+  // 7. convert timestamp to date.
   linkOrFolderData.createdAt = linkOrFolderData.createdAt.toDate();
-  linkOrFolderData.updatedAt = linkOrFolderData.updatedAt.toDate();
-
-  // 6. return children as array
+  linkOrFolderData.lastModified = linkOrFolderData.lastModified.toDate();
   if (linkOrFolderData.children) {
-    linkOrFolderData.children = Object.values(linkOrFolderData.children);
+    linkOrFolderData.children.forEach((child: any) => {
+      child.createdAt = child.createdAt.toDate();
+      child.lastModified = child.lastModified.toDate();
+    });
   }
 
   res.json({ status: STATUS_SUCCESS, data: linkOrFolderData });

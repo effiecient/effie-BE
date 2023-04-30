@@ -1,7 +1,40 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-
+const BLACKLISTED_USERNAMES = [
+  "admin",
+  "administrator",
+  "root",
+  "superuser",
+  "su",
+  "moderator",
+  "mod",
+  "owner",
+  "staff",
+  "support",
+  "help",
+  "info",
+  "contact",
+  "about",
+  "terms",
+  "privacy",
+  "cookie",
+  "cookies",
+  "faq",
+  "guidelines",
+  "guideline",
+  "rules",
+  "rule",
+  "tos",
+  "legal",
+  "license",
+  "licensing",
+  "licence",
+  "licencing",
+  "licenceing",
+  "api",
+  "undefined",
+];
 export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   // body contains uid
   const { uid, username } = req.body;
@@ -39,6 +72,13 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({
       status: STATUS_ERROR,
       message: `User ID ${uid} is already registered`,
+    });
+  }
+  // check if username is blacklisted
+  if (BLACKLISTED_USERNAMES.includes(username.toLowerCase())) {
+    return res.status(400).json({
+      status: STATUS_ERROR,
+      message: `Username '${username}' is not allowed`,
     });
   }
 

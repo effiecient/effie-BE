@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
-import { isAnyDefined } from "../../utils/isAnyDefined";
-import { isShareConfiguration } from "../../typeValidator";
+import { isAnyDefined, getDB, getGrandParentIdFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, isRelativePathValid } from "../../utils";
 
 export async function updateLink(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, link, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
@@ -67,7 +65,6 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   // validate body done
 
   // 2. get link ID. check if link exists, and user has access to it
-  const { db } = getDB();
   // get tree
   let { tree, err } = await getUsersTree(username);
   if (err !== undefined) {
@@ -87,6 +84,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const { db } = getDB();
   const linkRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(linkId);
   const linkData = await linkRef.get().then((doc: any) => doc.data());
   // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
@@ -107,93 +105,151 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     }
   });
   let newLinkData = { ...linkData, ...updatedProperties };
+
+  // update metadata
+  newLinkData.lastModified = new Date();
+  newLinkData.lastModifiedBy = req.headers.username;
+
   if (newRelativePath === undefined && newPath === undefined) {
     // 3.1 newRelativePath and newPath is undefined
     // a. update the parentData's children
     const case1ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
     const parentData = await case1ParentRef.get().then((doc: any) => doc.data());
     let newParentData = { ...parentData };
-    // newParentData.children is an array of objects with the relativePath as the key.
-    Object.keys(newParentData.children).forEach((key) => {
-      if (newParentData.children[key] === relativePath) {
-        newParentData.children[key] = newLinkData;
-      }
-    });
+
+    newParentData.children[relativePath] = newLinkData;
+
+    // b. update metadata
+    newParentData.lastModified = new Date();
+    newParentData.lastModifiedBy = req.headers.username;
+
     await case1ParentRef.set(newParentData);
   } else if (newRelativePath !== undefined && newPath === undefined) {
     // 3.2 newRelativePath is defined, newPath is undefined
     // a. validate: if newRelativePath is not taken
-    let { parentId: case2ParentId, dataId: newLinkId, err: case2Err } = getParentIdAndDataIdFromTree(tree, path, newRelativePath);
-    // if newLinkId is not undefined, then it means that the newRelativePath is taken
-    if (newLinkId !== undefined) {
+    let { parentId: case1ParentId, err } = isRelativePathFreeInTree(username, path, newRelativePath);
+    if (err !== undefined) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "newRelativePath is taken.",
+        message: err,
       });
       return;
     }
-    // a. update the parentData's children
+    // b. update the parentData's children
     const case2ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
     const case2ParentData = await case2ParentRef.get().then((doc: any) => doc.data());
     let case2NewParentData = { ...case2ParentData };
-    Object.keys(case2NewParentData.children).forEach((key) => {
-      if (case2NewParentData.children[key] === newRelativePath) {
-        case2NewParentData.children[key] = newLinkData;
-      }
-    });
-    // delete the old key
+
+    case2NewParentData.children[newRelativePath] = newLinkData;
     delete case2NewParentData.children[relativePath];
+
+    // b.1 update metadata
+    case2NewParentData.lastModified = new Date();
+    case2NewParentData.lastModifiedBy = req.headers.username;
+
     await case2ParentRef.set(case2NewParentData);
-    // b. update the tree
+
+    // c. update the tree
+    // c.1 delete the old key
     let currentDataInTree = tree.root;
     let pathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < pathArray.length; i++) {
       currentDataInTree = currentDataInTree.children[pathArray[i]];
     }
+    delete currentDataInTree.children[relativePath];
+    // c.2 add the new key
     currentDataInTree.children[newRelativePath] = {
       id: linkId,
       type: "link",
     };
-    // delete the old key
-    delete currentDataInTree.children[relativePath];
+
     await db.collection("linked-directories").doc(username).set({ tree });
   } else if (newRelativePath === undefined && newPath !== undefined) {
     // 3.3 newRelativePath is undefined, newPath is defined
     // a. validate: if newPath + relativePath is not taken
-    let { parentId: case3ParentId, dataId: case3NewLinkDataId, err: case3Err } = getParentIdAndDataIdFromTree(tree, newPath, relativePath);
-    // if case3NewLinkDataId is not undefined, then it means that the newPath + relativePath is taken
-    if (case3NewLinkDataId !== undefined) {
+    let { parentId: case3ParentId, err } = isRelativePathFreeInTree(username, newPath, relativePath);
+    if (err !== undefined) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "newPath + relativePath is taken.",
+        message: err,
       });
       return;
     }
-    // a. update the old and new parentData's children
+    // b. update the old and new parentData's children
     const case3OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
     const case3OldParentData = await case3OldParentRef.get().then((doc: any) => doc.data());
     const case3ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case3ParentId);
     const case3ParentData = await case3ParentRef.get().then((doc: any) => doc.data());
     let case3NewParentData = { ...case3ParentData };
-    Object.keys(case3NewParentData.children).forEach((key) => {
-      if (case3NewParentData.children[key] === relativePath) {
-        case3NewParentData.children[key] = newLinkData;
-      }
-    });
-    // delete the old key
+
+    case3NewParentData.children[relativePath] = newLinkData;
     delete case3OldParentData.children[relativePath];
+
+    // c. update metadata
+    // c.1 update old parent
+    case3OldParentData.lastModified = new Date();
+    case3OldParentData.lastModifiedBy = req.headers.username;
+    case3OldParentData.linkCount -= 1;
     await case3OldParentRef.set(case3OldParentData);
+    // c.2 update new parent
+    case3NewParentData.lastModified = new Date();
+    case3NewParentData.lastModifiedBy = req.headers.username;
+    case3NewParentData.linkCount += 1;
     await case3ParentRef.set(case3NewParentData);
 
-    // b. update the tree
+    // c.3 update the metadata in parent of old parent. if the parent is root, skip this step
+    let pathArray = path.split("/").filter((item: any) => item !== "");
+    if (pathArray.length > 0) {
+      let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
+      if (err !== undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: err,
+        });
+        return;
+      }
+
+      const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+      let newGrandParentData = await grandParentRef.get();
+      newGrandParentData = newGrandParentData.data();
+
+      delete case3OldParentData.children;
+      newGrandParentData.children[pathArray[pathArray.length - 1]] = { ...case3OldParentData };
+
+      await grandParentRef.update(newGrandParentData);
+    }
+
+    // c.4 update the metadata in parent of new parent. if the parent is root, skip this step
+    let newPathArray = newPath.split("/").filter((item: any) => item !== "");
+    if (newPathArray.length > 0) {
+      let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
+      if (err !== undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: err,
+        });
+        return;
+      }
+
+      const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+      let newGrandParentData = await grandParentRef.get();
+      newGrandParentData = newGrandParentData.data();
+
+      delete case3NewParentData.children;
+      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = { ...case3NewParentData };
+
+      await grandParentRef.update(newGrandParentData);
+    }
+
+    // d. update the tree
+    // d.1 delete the old key in tree
     let case3OldDataInTree = tree.root;
     let case3PathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case3PathArray.length; i++) {
       case3OldDataInTree = case3OldDataInTree.children[case3PathArray[i]];
     }
-    // delete the old key
     delete case3OldDataInTree.children[relativePath];
-
+    // d.2 add the new key in tree
     let case3CurrentDataInTree = tree.root;
     let case3NewPathArray = newPath.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case3NewPathArray.length; i++) {
@@ -205,45 +261,96 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     };
     await db.collection("linked-directories").doc(username).set({ tree });
   } else {
-    //newRelativePath !== undefined && newPath !== undefined
+    // newRelativePath !== undefined && newPath !== undefined
     // 3.4 newRelativePath and newPath is defined
     // a. validate if newPath + newRelativePath is not taken
-    let { parentId: case4ParentId, dataId: case4NewLinkDataId, err: case4Err } = getParentIdAndDataIdFromTree(tree, newPath, newRelativePath);
-    // if case4NewLinkDataId is not undefined, then it means that the newPath + newRelativePath is taken
-    if (case4NewLinkDataId !== undefined) {
+    let { parentId: case4ParentId, err } = isRelativePathFreeInTree(tree, newPath, newRelativePath);
+    if (err !== undefined) {
       res.status(400).json({
         status: STATUS_ERROR,
-        message: "newPath + newRelativePath is taken.",
+        message: err,
       });
       return;
     }
+
     // b. update the old and new parentData's children
     const case4OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
     const case4OldParentData = await case4OldParentRef.get().then((doc: any) => doc.data());
     const case4ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case4ParentId);
     const case4ParentData = await case4ParentRef.get().then((doc: any) => doc.data());
     let case4NewParentData = { ...case4ParentData };
-    Object.keys(case4NewParentData.children).forEach((key) => {
-      if (case4NewParentData.children[key] === newRelativePath) {
-        case4NewParentData.children[key] = newLinkData;
-      }
-    });
 
-    // delete the old key
+    case4NewParentData.children[newRelativePath] = newLinkData;
     delete case4OldParentData.children[relativePath];
 
     await case4OldParentRef.set(case4OldParentData);
     await case4ParentRef.set(case4NewParentData);
 
-    // c. update the tree
+    // c. update metadata
+    // c.1 update old parent
+    case4OldParentData.lastModified = new Date();
+    case4OldParentData.lastModifiedBy = req.headers.username;
+    case4OldParentData.linkCount -= 1;
+    await case4OldParentRef.set(case4OldParentData);
+    // c.2 update new parent
+    case4NewParentData.lastModified = new Date();
+    case4NewParentData.lastModifiedBy = req.headers.username;
+    case4NewParentData.linkCount += 1;
+    await case4ParentRef.set(case4NewParentData);
+    // c.3 update the metadata in parent of old parent. if the parent is root, skip this step
+    let pathArray = path.split("/").filter((item: any) => item !== "");
+    if (pathArray.length > 0) {
+      let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
+      if (err !== undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: err,
+        });
+        return;
+      }
+
+      const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+      let newGrandParentData = await grandParentRef.get();
+      newGrandParentData = newGrandParentData.data();
+
+      delete case4OldParentData.children;
+      newGrandParentData.children[pathArray[pathArray.length - 1]] = { ...case4OldParentData };
+
+      await grandParentRef.update(newGrandParentData);
+    }
+
+    // c.4 update the metadata in parent of new parent. if the parent is root, skip this step
+    let newPathArray = newPath.split("/").filter((item: any) => item !== "");
+    if (newPathArray.length > 0) {
+      let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
+      if (err !== undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: err,
+        });
+        return;
+      }
+
+      const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+      let newGrandParentData = await grandParentRef.get();
+      newGrandParentData = newGrandParentData.data();
+
+      delete case4NewParentData.children;
+
+      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = { ...case4NewParentData };
+
+      await grandParentRef.update(newGrandParentData);
+    }
+
+    // d. update the tree
+    // d.1 delete the old key in tree
     let case4OldDataInTree = tree.root;
     let case4PathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case4PathArray.length; i++) {
       case4OldDataInTree = case4OldDataInTree.children[case4PathArray[i]];
     }
-    // delete the old key
     delete case4OldDataInTree.children[relativePath];
-
+    // d.2 add the new key in tree
     let case4CurrentDataInTree = tree.root;
     let case4NewPathArray = newPath.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case4NewPathArray.length; i++) {
@@ -253,62 +360,13 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       id: linkId,
       type: "link",
     };
+
     await db.collection("linked-directories").doc(username).set({ tree });
   }
   // 4. update the link itself
   await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(linkId).set(newLinkData);
+
   res.status(200).json({
     status: STATUS_SUCCESS,
   });
-}
-
-async function getUsersTree(username: string) {
-  let err: any = undefined;
-  let tree: any = undefined;
-
-  const { db } = getDB();
-  let userDirectoryRef = db.collection("linked-directories").doc(username);
-  const userDirectoryData = await userDirectoryRef.get();
-  if (!userDirectoryData.exists) {
-    err = "User does not exist.";
-  } else {
-    tree = userDirectoryData.data().tree;
-  }
-  return { tree, err };
-}
-
-function getParentIdAndDataIdFromTree(tree: any, path: string, relativePath: string) {
-  let parentId: any = undefined;
-  let dataId: any = undefined;
-  let err: any = undefined;
-
-  let pathArray = path.split("/").filter((item: any) => item !== "");
-
-  let parentDataInTree = tree.root;
-  for (let i = 0; i < pathArray.length; i++) {
-    const folderName = pathArray[i];
-    let temporaryPath = "";
-    for (let j = 0; j <= i; j++) {
-      temporaryPath += "/" + pathArray[j];
-    }
-    if (parentDataInTree.children === undefined) {
-      err = `${path} does not exist`;
-      break;
-    }
-
-    if (folderName in parentDataInTree.children) {
-      parentDataInTree = parentDataInTree.children[folderName];
-    } else {
-      err = `${temporaryPath} does not exist`;
-      break;
-    }
-  }
-  parentId = parentDataInTree.id;
-  if (relativePath in parentDataInTree.children) {
-    dataId = parentDataInTree.children[relativePath].id;
-  } else {
-    err = `${relativePath} does not exist`;
-  }
-
-  return { parentId, dataId, err };
 }

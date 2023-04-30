@@ -157,6 +157,22 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   newParentData.children[relativePath] = newLinkData;
 
   await parentRef.update(newParentData);
+  // 7. update the metadata in parent of parent. if the parent is root, skip this step
+  if (pathArray.length > 0) {
+    const parentPathArray = pathArray.slice(0, pathArray.length - 1);
+    let parentOfParentDataInTree = tree.root;
+    for (let i = 0; i < parentPathArray.length; i++) {
+      const folderName = parentPathArray[i];
+      parentOfParentDataInTree = parentOfParentDataInTree.children[folderName];
+    }
+    const parentOfParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentOfParentDataInTree.id);
+    let newParentOfParentData = await parentOfParentRef.get();
+    newParentOfParentData = newParentOfParentData.data();
+    // delete children from newParentData
+    delete newParentData.children;
+    newParentOfParentData.children[pathArray[pathArray.length - 1]] = newParentData;
+    await parentOfParentRef.update(newParentOfParentData);
+  }
 
   // 7. update the tree in the path from root. add id and type to the tree
   let currentDataInTree = tree.root;
