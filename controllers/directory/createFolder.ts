@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, getLastIdInPathFromTree, isAnyUndefined, isRelativePathValid } from "../../utils";
-import { isShareConfiguration } from "../../typeValidator";
+import { getDB, getLastIdInPathFromTree, isAnyUndefined, isRelativePathValid, validateBody } from "../../utils";
 
 export async function createFolder(req: VercelRequest, res: VercelResponse) {
   // 1. PARSE INPUT: Authenctation and body
@@ -22,61 +21,15 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-
-  // validate: check if path start with /
-  if (path[0] !== "/") {
+  let errValidate = validateBody({ username, path, relativePath, title, isPinned, publicAccess, personalAccess });
+  if (errValidate !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid path",
+      message: errValidate,
     });
     return;
   }
-  // validate: prevent invalid characters in relative path
-  if (!isRelativePathValid(relativePath)) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
-    });
-    return;
-  }
-  // validate: check if publicAccess is valid. options: read, write, none
-  if (publicAccess !== undefined) {
-    if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid publicAccess.",
-      });
-      return;
-    }
-  }
 
-  // validate: check if personalAccess is valid. is an array of objects. each object has username and access. access can be read, write, none
-  if (personalAccess !== undefined) {
-    if (!Array.isArray(personalAccess)) {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid personalAccess.",
-      });
-      return;
-    }
-    for (let i = 0; i < personalAccess.length; i++) {
-      if (personalAccess[i].username === undefined || personalAccess[i].access === undefined) {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-
-      if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-    }
-  }
   //2. check if the parent folder exists
   const { db } = getDB();
 

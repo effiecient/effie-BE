@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { isAnyDefined, getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, isRelativePathValid } from "../../utils";
+import { isAnyDefined, getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, isRelativePathValid, validateBody } from "../../utils";
 
 export async function updateLink(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, link, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
@@ -32,75 +32,14 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-
-  // validate: check if path start with /
-  if (path[0] !== "/") {
+  let errValidate = validateBody({ username, path, relativePath, link, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess });
+  if (errValidate !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid path.",
+      message: errValidate,
     });
     return;
   }
-  // validate: check if newPath start with /
-  if (newPath !== undefined) {
-    if (newPath[0] !== "/") {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid newPath.",
-      });
-      return;
-    }
-  }
-
-  // vadidate: check if newRelativePath is valid
-  if (newRelativePath !== undefined) {
-    if (!isRelativePathValid(newRelativePath)) {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid newRelativePath.",
-      });
-      return;
-    }
-  }
-  // validate: check if publicAccess is valid. options: read, write, none
-  if (publicAccess !== undefined) {
-    if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid publicAccess.",
-      });
-      return;
-    }
-  }
-
-  // validate: check if personalAccess is valid. is an array of objects. each object has username and access. access can be read, write, none
-  if (personalAccess !== undefined) {
-    if (!Array.isArray(personalAccess)) {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid personalAccess.",
-      });
-      return;
-    }
-    for (let i = 0; i < personalAccess.length; i++) {
-      if (personalAccess[i].username === undefined || personalAccess[i].access === undefined) {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-
-      if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-    }
-  }
-
   // validate body done
 
   // 2. get link ID. check if link exists, and user has access to it

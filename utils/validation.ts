@@ -8,7 +8,7 @@ function validateBody(body: any) {
   keys = keys.filter((key) => body[key] !== undefined); // remove undefined
   for (let i = 0; i < keys.length; i++) {
     const key: any = keys[i];
-    if (!["username", "link", "path", "relativePath", "title", "isPinned", "publicAccess", "personalAccess"].includes(key)) {
+    if (!["username", "link", "path", "relativePath", "title", "isPinned", "newRelativePath", "newPath", "publicAccess", "personalAccess"].includes(key)) {
       err = `Invalid key ${key}`;
       break;
     }
@@ -17,11 +17,23 @@ function validateBody(body: any) {
       if (path[0] !== "/") {
         err = "Path must start with /";
         break;
+      } else if (key === "newPath") {
+        let newPath = body[key];
+        if (newPath[0] !== "/") {
+          err = "newPath must start with /";
+          break;
+        }
       }
     } else if (key === "relativePath") {
       let relativePath = body[key];
       if (!isRelativePathValid(relativePath)) {
         err = "Invalid relative path. Only alphanumeric characters and hyphens are allowed.";
+        break;
+      }
+    } else if (key === "newRelativePath") {
+      let newRelativePath = body[key];
+      if (!isRelativePathValid(newRelativePath)) {
+        err = "Invalid newRelativePath. Only alphanumeric characters and hyphens are allowed.";
         break;
       }
     } else if (key === "link") {
