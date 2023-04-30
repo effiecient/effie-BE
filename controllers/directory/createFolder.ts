@@ -149,6 +149,9 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   newParentData.lastModified = newFolderData.lastModified;
   newParentData.lastModifiedBy = req.headers.username;
   newParentData.folderCount += 1;
+
+  // save everything except children. remove children property from newParentData
+  delete newParentData.children;
   newParentData.children[relativePath] = newFolderData;
 
   await parentRef.update(newParentData);

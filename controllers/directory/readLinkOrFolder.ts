@@ -95,5 +95,10 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   linkOrFolderData.createdAt = linkOrFolderData.createdAt.toDate();
   linkOrFolderData.updatedAt = linkOrFolderData.updatedAt.toDate();
 
+  // 6. return children as array
+  if (linkOrFolderData.children) {
+    linkOrFolderData.children = Object.values(linkOrFolderData.children);
+  }
+
   res.json({ status: STATUS_SUCCESS, data: linkOrFolderData });
 }
