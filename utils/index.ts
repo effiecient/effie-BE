@@ -2,7 +2,7 @@ export { getUsernameById } from "./getUsernameById";
 export { createTokenJWT, verifyTokenJWT } from "./jwt";
 export { getDB, getFirebaseAuth } from "./firebase";
 export { recursiveUpdateDocumentShareConfiguration } from "./recursiveUpdateDocumentShareConfiguration";
-export { isRelativePathValid } from "./validation";
+export { isRelativePathValid, validateBody } from "./validation";
 export { recursiveCloneDocument } from "./recursiveCloneDocument";
 export { recursiveDeleteDocument } from "./recursiveDeleteDocument";
 export { isAnyUndefined } from "./isAnyUndefined";
@@ -95,32 +95,32 @@ export function isRelativePathFreeInTree(tree: any, path: string, relativePath: 
   return { parentId, err };
 }
 
-export function getGrandParentIdFromTree(tree: any, path: string) {
-  let grandParentId: any = undefined;
+export function getLastIdInPathFromTree(tree: any, path: string) {
+  let lastDataId: any = undefined;
   let err: any = undefined;
 
   let pathArray = path.split("/").filter((item: any) => item !== "");
 
-  let grandParentDataInTree = tree.root;
-  for (let i = 0; i < pathArray.length - 1; i++) {
+  let dataInTree = tree.root;
+  for (let i = 0; i < pathArray.length; i++) {
     const folderName = pathArray[i];
     let temporaryPath = "";
     for (let j = 0; j <= i; j++) {
       temporaryPath += "/" + pathArray[j];
     }
-    if (grandParentDataInTree.children === undefined) {
+    if (dataInTree.children === undefined) {
       err = `${temporaryPath} is not a folder`;
       break;
     }
 
-    if (folderName in grandParentDataInTree.children) {
-      grandParentDataInTree = grandParentDataInTree.children[folderName];
+    if (folderName in dataInTree.children) {
+      dataInTree = dataInTree.children[folderName];
     } else {
       err = `${temporaryPath} does not exist`;
       break;
     }
   }
-  grandParentId = grandParentDataInTree.id;
+  lastDataId = dataInTree.id;
 
-  return { grandParentId, err };
+  return { lastDataId, err };
 }

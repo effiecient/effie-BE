@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { isAnyDefined, getDB, getGrandParentIdFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, isRelativePathValid } from "../../utils";
+import { isAnyDefined, getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, isRelativePathValid } from "../../utils";
 
 export async function updateLink(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, link, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
@@ -249,7 +249,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     // d.3 update the metadata in parent of old parent. if the parent is root, skip this step
     let pathArray = path.split("/").filter((item: any) => item !== "");
     if (pathArray.length > 0) {
-      let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
+      let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, pathArray.slice(0, pathArray.length - 1).join("/"));
       if (err !== undefined) {
         res.status(400).json({
           status: STATUS_ERROR,
@@ -263,7 +263,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       newGrandParentData = newGrandParentData.data();
 
       delete case3OldParentData.children;
-      newGrandParentData.children[pathArray[pathArray.length - 1]] = { ...case3OldParentData };
+      newGrandParentData.children[pathArray[pathArray.length - 1]] = case3OldParentData;
 
       await grandParentRef.update(newGrandParentData);
     }
@@ -271,7 +271,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     // d.4 update the metadata in parent of new parent. if the parent is root, skip this step
     let newPathArray = newPath.split("/").filter((item: any) => item !== "");
     if (newPathArray.length > 0) {
-      let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
+      let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, newPathArray.slice(0, newPathArray.length - 1).join("/"));
       if (err !== undefined) {
         res.status(400).json({
           status: STATUS_ERROR,
@@ -285,7 +285,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       newGrandParentData = newGrandParentData.data();
 
       delete case3NewParentData.children;
-      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = { ...case3NewParentData };
+      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = case3NewParentData;
 
       await grandParentRef.update(newGrandParentData);
     }
@@ -321,7 +321,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       });
       return;
     }
-    // b. TODO: check if has access to the newpath
+    // b. check if has access to the newpath
     const case4ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case4ParentId);
     const case4ParentData = await case4ParentRef.get().then((doc: any) => doc.data());
     // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
@@ -358,7 +358,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     // d.3 update the metadata in parent of old parent. if the parent is root, skip this step
     let pathArray = path.split("/").filter((item: any) => item !== "");
     if (pathArray.length > 0) {
-      let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
+      let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, pathArray.slice(0, pathArray.length - 1).join("/"));
       if (err !== undefined) {
         res.status(400).json({
           status: STATUS_ERROR,
@@ -372,7 +372,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       newGrandParentData = newGrandParentData.data();
 
       delete case4OldParentData.children;
-      newGrandParentData.children[pathArray[pathArray.length - 1]] = { ...case4OldParentData };
+      newGrandParentData.children[pathArray[pathArray.length - 1]] = case4OldParentData;
 
       await grandParentRef.update(newGrandParentData);
     }
@@ -380,7 +380,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     // d.4 update the metadata in parent of new parent. if the parent is root, skip this step
     let newPathArray = newPath.split("/").filter((item: any) => item !== "");
     if (newPathArray.length > 0) {
-      let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
+      let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, newPathArray.slice(0, newPathArray.length - 1).join("/"));
       if (err !== undefined) {
         res.status(400).json({
           status: STATUS_ERROR,
@@ -395,7 +395,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
 
       delete case4NewParentData.children;
 
-      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = { ...case4NewParentData };
+      newGrandParentData.children[newPathArray[newPathArray.length - 1]] = case4NewParentData;
 
       await grandParentRef.update(newGrandParentData);
     }

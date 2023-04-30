@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
+import { getDB, getLastIdInPathFromTree, isAnyUndefined, isRelativePathValid } from "../../utils";
 import { isShareConfiguration } from "../../typeValidator";
 
 export async function createFolder(req: VercelRequest, res: VercelResponse) {
@@ -193,7 +193,27 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
 
   await parentRef.update(newParentData);
 
-  // 7. update the tree in the path from root. add id and type to the tree
+  // 7. update the metadata in parent of parent. if the parent is root, skip this step
+  if (pathArray.length > 0) {
+    let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, pathArray.slice(0, pathArray.length - 1).join("/"));
+    if (err) {
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${path} does not exist`,
+      });
+      return;
+    }
+
+    const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+    let newGrandParentData = await grandParentRef.get();
+    newGrandParentData = newGrandParentData.data();
+    // delete children from newParentData
+    delete newParentData.children;
+    newGrandParentData.children[pathArray[pathArray.length - 1]] = newParentData;
+    await grandParentRef.update(newGrandParentData);
+  }
+
+  // 8. update the tree in the path from root. add id and type to the tree
   let currentDataInTree = tree.root;
   for (let i = 0; i < pathArray.length; i++) {
     const folderName = pathArray[i];

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, isAnyUndefined, isRelativePathValid } from "../../utils";
+import { getDB, getLastIdInPathFromTree, isAnyUndefined, validateBody } from "../../utils";
 
 export async function createLink(req: VercelRequest, res: VercelResponse) {
   // 1. PARSE INPUT: Authenctation and body
@@ -22,69 +22,15 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // validate: check if path start with /
-  if (path[0] !== "/") {
+  let errValidate = validateBody({ username, link, path, relativePath, title, isPinned, publicAccess, personalAccess });
+  if (errValidate !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: "Invalid path",
-    });
-    return;
-  }
-  // validate: prevent invalid characters in relative path
-  if (!isRelativePathValid(relativePath)) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid relative path. Only alphanumeric characters and hyphens are allowed.",
-    });
-    return;
-  }
-  // validate: link starts with http:// or https://
-  if (!link.startsWith("http://") && !link.startsWith("https://")) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid link. Link must start with http:// or https://",
+      message: errValidate,
     });
     return;
   }
 
-  // validate: check if publicAccess is valid. options: read, write, none
-  if (publicAccess !== undefined) {
-    if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid publicAccess.",
-      });
-      return;
-    }
-  }
-
-  // validate: check if personalAccess is valid. is an array of objects. each object has username and access. access can be read, write, none
-  if (personalAccess !== undefined) {
-    if (!Array.isArray(personalAccess)) {
-      res.status(400).json({
-        status: STATUS_ERROR,
-        message: "Invalid personalAccess.",
-      });
-      return;
-    }
-    for (let i = 0; i < personalAccess.length; i++) {
-      if (personalAccess[i].username === undefined || personalAccess[i].access === undefined) {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-
-      if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
-        res.status(400).json({
-          status: STATUS_ERROR,
-          message: "Invalid personalAccess.",
-        });
-        return;
-      }
-    }
-  }
   //2. check if the parent folder exists
   const { db } = getDB();
 
@@ -195,24 +141,27 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   newParentData.children[relativePath] = newLinkData;
 
   await parentRef.update(newParentData);
+
   // 7. update the metadata in parent of parent. if the parent is root, skip this step
   if (pathArray.length > 0) {
-    const parentPathArray = pathArray.slice(0, pathArray.length - 1);
-    let parentOfParentDataInTree = tree.root;
-    for (let i = 0; i < parentPathArray.length; i++) {
-      const folderName = parentPathArray[i];
-      parentOfParentDataInTree = parentOfParentDataInTree.children[folderName];
+    let { lastDataId: grandParentId, err } = getLastIdInPathFromTree(tree, pathArray.slice(0, pathArray.length - 1).join("/"));
+    if (err) {
+      res.status(404).json({
+        status: STATUS_ERROR,
+        message: `${path} does not exist`,
+      });
+      return;
     }
-    const parentOfParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentOfParentDataInTree.id);
-    let newParentOfParentData = await parentOfParentRef.get();
-    newParentOfParentData = newParentOfParentData.data();
+    const grandParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentId);
+    let newGrandParentData = await grandParentRef.get();
+    newGrandParentData = newGrandParentData.data();
     // delete children from newParentData
     delete newParentData.children;
-    newParentOfParentData.children[pathArray[pathArray.length - 1]] = newParentData;
-    await parentOfParentRef.update(newParentOfParentData);
+    newGrandParentData.children[pathArray[pathArray.length - 1]] = newParentData;
+    await grandParentRef.update(newGrandParentData);
   }
 
-  // 7. update the tree in the path from root. add id and type to the tree
+  // 8. update the tree in the path from root. add id and type to the tree
   let currentDataInTree = tree.root;
   for (let i = 0; i < pathArray.length; i++) {
     const folderName = pathArray[i];
@@ -223,8 +172,6 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     type: "link",
   };
 
-  console.log("tree");
-  console.log(tree);
   await userDirectoryRef.set({ tree });
 
   res.status(200).json({
