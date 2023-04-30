@@ -62,6 +62,45 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       return;
     }
   }
+  // validate: check if publicAccess is valid. options: read, write, none
+  if (publicAccess !== undefined) {
+    if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid publicAccess.",
+      });
+      return;
+    }
+  }
+
+  // validate: check if personalAccess is valid. is an array of objects. each object has username and access. access can be read, write, none
+  if (personalAccess !== undefined) {
+    if (!Array.isArray(personalAccess)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid personalAccess.",
+      });
+      return;
+    }
+    for (let i = 0; i < personalAccess.length; i++) {
+      if (personalAccess[i].username === undefined || personalAccess[i].access === undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: "Invalid personalAccess.",
+        });
+        return;
+      }
+
+      if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: "Invalid personalAccess.",
+        });
+        return;
+      }
+    }
+  }
+
   // validate body done
 
   // 2. get link ID. check if link exists, and user has access to it
@@ -175,29 +214,39 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       });
       return;
     }
-    // b. update the old and new parentData's children
-    const case3OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
-    const case3OldParentData = await case3OldParentRef.get().then((doc: any) => doc.data());
+    // b. check if has access to the newpath
     const case3ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case3ParentId);
     const case3ParentData = await case3ParentRef.get().then((doc: any) => doc.data());
+    // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
+    if (req.headers.username !== username && case3ParentData.publicAccess !== "write" && !case3ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+      res.status(401).json({
+        status: STATUS_ERROR,
+        message: "Unauthorized.",
+      });
+      return;
+    }
+
+    // c. update the old and new parentData's children
+    const case3OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
+    const case3OldParentData = await case3OldParentRef.get().then((doc: any) => doc.data());
     let case3NewParentData = { ...case3ParentData };
 
     case3NewParentData.children[relativePath] = newLinkData;
     delete case3OldParentData.children[relativePath];
 
-    // c. update metadata
-    // c.1 update old parent
+    // d. update metadata
+    // d.1 update old parent
     case3OldParentData.lastModified = new Date();
     case3OldParentData.lastModifiedBy = req.headers.username;
     case3OldParentData.linkCount -= 1;
     await case3OldParentRef.set(case3OldParentData);
-    // c.2 update new parent
+    // d.2 update new parent
     case3NewParentData.lastModified = new Date();
     case3NewParentData.lastModifiedBy = req.headers.username;
     case3NewParentData.linkCount += 1;
     await case3ParentRef.set(case3NewParentData);
 
-    // c.3 update the metadata in parent of old parent. if the parent is root, skip this step
+    // d.3 update the metadata in parent of old parent. if the parent is root, skip this step
     let pathArray = path.split("/").filter((item: any) => item !== "");
     if (pathArray.length > 0) {
       let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
@@ -219,7 +268,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       await grandParentRef.update(newGrandParentData);
     }
 
-    // c.4 update the metadata in parent of new parent. if the parent is root, skip this step
+    // d.4 update the metadata in parent of new parent. if the parent is root, skip this step
     let newPathArray = newPath.split("/").filter((item: any) => item !== "");
     if (newPathArray.length > 0) {
       let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
@@ -241,15 +290,15 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       await grandParentRef.update(newGrandParentData);
     }
 
-    // d. update the tree
-    // d.1 delete the old key in tree
+    // e. update the tree
+    // e.1 delete the old key in tree
     let case3OldDataInTree = tree.root;
     let case3PathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case3PathArray.length; i++) {
       case3OldDataInTree = case3OldDataInTree.children[case3PathArray[i]];
     }
     delete case3OldDataInTree.children[relativePath];
-    // d.2 add the new key in tree
+    // e.2 add the new key in tree
     let case3CurrentDataInTree = tree.root;
     let case3NewPathArray = newPath.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case3NewPathArray.length; i++) {
@@ -272,12 +321,21 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       });
       return;
     }
-
-    // b. update the old and new parentData's children
-    const case4OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
-    const case4OldParentData = await case4OldParentRef.get().then((doc: any) => doc.data());
+    // b. TODO: check if has access to the newpath
     const case4ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case4ParentId);
     const case4ParentData = await case4ParentRef.get().then((doc: any) => doc.data());
+    // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
+    if (req.headers.username !== username && case4ParentData.publicAccess !== "write" && !case4ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+      res.status(401).json({
+        status: STATUS_ERROR,
+        message: "Unauthorized.",
+      });
+      return;
+    }
+
+    // c. update the old and new parentData's children
+    const case4OldParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
+    const case4OldParentData = await case4OldParentRef.get().then((doc: any) => doc.data());
     let case4NewParentData = { ...case4ParentData };
 
     case4NewParentData.children[newRelativePath] = newLinkData;
@@ -286,18 +344,18 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     await case4OldParentRef.set(case4OldParentData);
     await case4ParentRef.set(case4NewParentData);
 
-    // c. update metadata
-    // c.1 update old parent
+    // d. update metadata
+    // d.1 update old parent
     case4OldParentData.lastModified = new Date();
     case4OldParentData.lastModifiedBy = req.headers.username;
     case4OldParentData.linkCount -= 1;
     await case4OldParentRef.set(case4OldParentData);
-    // c.2 update new parent
+    // d.2 update new parent
     case4NewParentData.lastModified = new Date();
     case4NewParentData.lastModifiedBy = req.headers.username;
     case4NewParentData.linkCount += 1;
     await case4ParentRef.set(case4NewParentData);
-    // c.3 update the metadata in parent of old parent. if the parent is root, skip this step
+    // d.3 update the metadata in parent of old parent. if the parent is root, skip this step
     let pathArray = path.split("/").filter((item: any) => item !== "");
     if (pathArray.length > 0) {
       let { grandParentId, err } = getGrandParentIdFromTree(tree, path);
@@ -319,7 +377,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       await grandParentRef.update(newGrandParentData);
     }
 
-    // c.4 update the metadata in parent of new parent. if the parent is root, skip this step
+    // d.4 update the metadata in parent of new parent. if the parent is root, skip this step
     let newPathArray = newPath.split("/").filter((item: any) => item !== "");
     if (newPathArray.length > 0) {
       let { grandParentId, err } = getGrandParentIdFromTree(tree, newPath);
@@ -342,15 +400,15 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
       await grandParentRef.update(newGrandParentData);
     }
 
-    // d. update the tree
-    // d.1 delete the old key in tree
+    // e. update the tree
+    // e.1 delete the old key in tree
     let case4OldDataInTree = tree.root;
     let case4PathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case4PathArray.length; i++) {
       case4OldDataInTree = case4OldDataInTree.children[case4PathArray[i]];
     }
     delete case4OldDataInTree.children[relativePath];
-    // d.2 add the new key in tree
+    // e.2 add the new key in tree
     let case4CurrentDataInTree = tree.root;
     let case4NewPathArray = newPath.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < case4NewPathArray.length; i++) {

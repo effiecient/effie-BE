@@ -47,6 +47,44 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // validate: check if publicAccess is valid. options: read, write, none
+  if (publicAccess !== undefined) {
+    if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid publicAccess.",
+      });
+      return;
+    }
+  }
+
+  // validate: check if personalAccess is valid. is an array of objects. each object has username and access. access can be read, write, none
+  if (personalAccess !== undefined) {
+    if (!Array.isArray(personalAccess)) {
+      res.status(400).json({
+        status: STATUS_ERROR,
+        message: "Invalid personalAccess.",
+      });
+      return;
+    }
+    for (let i = 0; i < personalAccess.length; i++) {
+      if (personalAccess[i].username === undefined || personalAccess[i].access === undefined) {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: "Invalid personalAccess.",
+        });
+        return;
+      }
+
+      if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
+        res.status(400).json({
+          status: STATUS_ERROR,
+          message: "Invalid personalAccess.",
+        });
+        return;
+      }
+    }
+  }
   //2. check if the parent folder exists
   const { db } = getDB();
 
