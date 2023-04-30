@@ -2,9 +2,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
-export async function register(req: VercelRequest, res: VercelResponse) {
+export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   // body contains uid
-  const { uid, username, photoURL } = req.body;
+  const { uid, username } = req.body;
   const accessToken = req.headers.authorization;
 
   // check if body contains uid and username
@@ -55,11 +55,7 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    if (photoURL !== undefined) {
-      await userRef.doc(uid).set({ username, photoURL });
-    } else {
-      await userRef.doc(uid).set({ username });
-    }
+    await userRef.doc(uid).set({ username });
   } catch (error) {
     return res.status(500).json({
       status: STATUS_ERROR,
@@ -77,12 +73,10 @@ export async function register(req: VercelRequest, res: VercelResponse) {
     });
   }
   // make jwt token
+  // get the photoURL based on google uid from firebase auth
+  let user = await auth.getUser(uid);
+  let photoURL = user.photoURL;
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
-  if (photoURL !== undefined) {
-    payload = { ...payload, photoURL };
-  }
-  // TODO: clean console.log
-  console.log("payload", payload);
   const token = await createTokenJWT(payload, "168h");
 
   // create user directory
@@ -116,8 +110,6 @@ export async function register(req: VercelRequest, res: VercelResponse) {
 
   return res.status(200).json({
     status: STATUS_SUCCESS,
-    token,
-    username,
-    message: "User registered",
+    data: { token, username, photoURL },
   });
 }

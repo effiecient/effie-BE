@@ -2,9 +2,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
-export async function login(req: VercelRequest, res: VercelResponse) {
+export async function loginGoogle(req: VercelRequest, res: VercelResponse) {
   // body contains uid
-  const { uid, photoURL } = req.body;
+  const { uid } = req.body;
   const accessToken = req.headers.authorization;
   // check if body contains uid
   if (uid === undefined) {
@@ -48,26 +48,16 @@ export async function login(req: VercelRequest, res: VercelResponse) {
       message: `User ID ${uid} does not have a username`,
     });
   }
-  // update photo
-  if (photoURL !== undefined) {
-    const { db } = getDB();
-    const userRef = db.collection("users");
-    await userRef.doc(uid).update({ photoURL }, { merge: true });
-  }
 
   // make jwt token
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
-  if (photoURL !== undefined) {
-    payload = { ...payload, photoURL };
-  }
-  // TODO: clean console.log
-  console.log("payload", payload);
 
   const token = createTokenJWT(payload, "168h");
+  // get the photoURL based on google uid from firebase auth
+  let user = await auth.getUser(uid);
+  let photoURL = user.photoURL;
   res.status(200).json({
     status: STATUS_SUCCESS,
-    token,
-    username,
-    message: "Login successful",
+    data: { token, username, photoURL },
   });
 }

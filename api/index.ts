@@ -16,9 +16,10 @@ app.get("/api", getHello);
 app.post("/api/auth", authController.checkAuth);
 
 // USER CONTROLLER
-app.post("/api/user/check", jsonParser, userController.usernameCheck);
-app.post("/api/user/register", jsonParser, userController.register);
-app.post("/api/user/login", jsonParser, userController.login);
+app.post("/api/user/check-google", jsonParser, userController.checkGoogleAccountIsRegistered);
+
+app.post("/api/user/register-google", jsonParser, userController.register);
+app.post("/api/user/login-google", jsonParser, userController.login);
 
 // DIRECTORY CONTROLLER
 // TODO: need authentication middleware

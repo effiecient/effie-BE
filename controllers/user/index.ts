@@ -1,5 +1,5 @@
-import { login } from "./login";
-import { register } from "./register";
-import { usernameCheck } from "./usernameCheck";
+import { loginGoogle } from "./loginGoogle";
+import { registerGoogle } from "./registerGoogle";
+import { checkGoogleAccountIsRegistered } from "./checkGoogleAccountIsRegistered";
 
-export default { login, register, usernameCheck };
+export default { loginGoogle, registerGoogle, checkGoogleAccountIsRegistered };
