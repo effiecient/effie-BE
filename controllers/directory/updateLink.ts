@@ -105,7 +105,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   } else if (newRelativePath !== undefined && newPath === undefined) {
     // 3.2 newRelativePath is defined, newPath is undefined
     // a. validate: if newRelativePath is not taken
-    let { parentId: case1ParentId, err } = isRelativePathFreeInTree(username, path, newRelativePath);
+    let { parentId: case1ParentId, err } = isRelativePathFreeInTree(tree, path, newRelativePath);
     if (err !== undefined) {
       res.status(400).json({
         status: STATUS_ERROR,
@@ -145,7 +145,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   } else if (newRelativePath === undefined && newPath !== undefined) {
     // 3.3 newRelativePath is undefined, newPath is defined
     // a. validate: if newPath + relativePath is not taken
-    let { parentId: case3ParentId, err } = isRelativePathFreeInTree(username, newPath, relativePath);
+    let { parentId: case3ParentId, err } = isRelativePathFreeInTree(tree, newPath, relativePath);
     if (err !== undefined) {
       res.status(400).json({
         status: STATUS_ERROR,

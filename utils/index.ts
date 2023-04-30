@@ -39,6 +39,12 @@ export function getParentIdAndDataIdFromTree(tree: any, path: string, relativePa
     for (let j = 0; j <= i; j++) {
       temporaryPath += "/" + pathArray[j];
     }
+
+    if (parentDataInTree === undefined) {
+      err = `${temporaryPath} does not exist`;
+      break;
+    }
+
     if (parentDataInTree.children === undefined) {
       err = `${temporaryPath} is not a folder`;
       break;
@@ -51,11 +57,13 @@ export function getParentIdAndDataIdFromTree(tree: any, path: string, relativePa
       break;
     }
   }
-  parentId = parentDataInTree.id;
-  if (relativePath in parentDataInTree.children) {
-    dataId = parentDataInTree.children[relativePath].id;
-  } else {
-    err = `${relativePath} does not exist`;
+  if (err === undefined) {
+    parentId = parentDataInTree.id;
+    if (relativePath in parentDataInTree.children) {
+      dataId = parentDataInTree.children[relativePath].id;
+    } else {
+      err = `${relativePath} does not exist`;
+    }
   }
 
   return { parentId, dataId, err };
@@ -74,6 +82,12 @@ export function isRelativePathFreeInTree(tree: any, path: string, relativePath: 
     for (let j = 0; j <= i; j++) {
       temporaryPath += "/" + pathArray[j];
     }
+
+    if (parentDataInTree === undefined) {
+      err = `${temporaryPath} does not exist`;
+      break;
+    }
+
     if (parentDataInTree.children === undefined) {
       err = `${temporaryPath} is not a folder`;
       break;
@@ -86,11 +100,14 @@ export function isRelativePathFreeInTree(tree: any, path: string, relativePath: 
       break;
     }
   }
-  if (relativePath in parentDataInTree.children) {
-    err = `${relativePath} is taken`;
-  }
 
-  parentId = parentDataInTree.id;
+  if (err === undefined) {
+    if (relativePath in parentDataInTree.children) {
+      err = `${relativePath} is taken`;
+    } else {
+      parentId = parentDataInTree.id;
+    }
+  }
 
   return { parentId, err };
 }
