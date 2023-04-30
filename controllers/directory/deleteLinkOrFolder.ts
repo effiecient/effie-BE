@@ -95,6 +95,11 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   } else if (type === "link") {
     newParentData.linkCount -= 1;
   }
+
+  // updating metadata
+  newParentData.lastModified = new Date();
+  newParentData.lastModifiedBy = username;
+
   await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentDataInTree.id).set(newParentData);
 
   // update grandparent
