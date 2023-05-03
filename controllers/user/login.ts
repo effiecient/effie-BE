@@ -51,7 +51,7 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   // update photo
   if (photoURL !== undefined) {
     const { db } = getDB();
-    const userRef = db.collection("users");
+    const userRef = db.collection("users").doc("index").collection("google");
     await userRef.doc(uid).update({ photoURL }, { merge: true });
   }
 
