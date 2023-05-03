@@ -44,7 +44,8 @@ export async function register(req: VercelRequest, res: VercelResponse) {
 
   const { db } = getDB();
 
-  const userRef = db.collection("users");
+  // google collection inside usrs collection
+  const userRef = db.collection("users").doc("index").collection("google");
 
   const usernameExist = await userRef.where("username", "==", username).get();
   if (usernameExist.empty === false) {
@@ -66,6 +67,25 @@ export async function register(req: VercelRequest, res: VercelResponse) {
       message: "Internal server error",
     });
   }
+  // add to index
+  try {
+    await db
+      .collection("users")
+      .doc("index")
+      .set(
+        {
+          google: {
+            [uid]: username,
+          },
+        },
+        { merge: true }
+      );
+  } catch (error) {
+    return res.status(500).json({
+      status: STATUS_ERROR,
+      message: "Internal server error",
+    });
+  }
 
   // add root folder
   try {
@@ -81,8 +101,6 @@ export async function register(req: VercelRequest, res: VercelResponse) {
   if (photoURL !== undefined) {
     payload = { ...payload, photoURL };
   }
-  // TODO: clean console.log
-  console.log("payload", payload);
   const token = await createTokenJWT(payload, "168h");
 
   return res.status(200).json({

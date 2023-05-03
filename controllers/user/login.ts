@@ -60,8 +60,6 @@ export async function login(req: VercelRequest, res: VercelResponse) {
   if (photoURL !== undefined) {
     payload = { ...payload, photoURL };
   }
-  // TODO: clean console.log
-  console.log("payload", payload);
 
   const token = createTokenJWT(payload, "168h");
   res.status(200).json({
