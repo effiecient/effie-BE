@@ -84,7 +84,8 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
 
   const { db } = getDB();
 
-  const userRef = db.collection("users");
+  // google collection inside usrs collection
+  const userRef = db.collection("users").doc("index").collection("google");
 
   const usernameExist = await userRef.where("username", "==", username).get();
   if (usernameExist.empty === false) {
@@ -96,6 +97,25 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
 
   try {
     await userRef.doc(uid).set({ username });
+  } catch (error) {
+    return res.status(500).json({
+      status: STATUS_ERROR,
+      message: "Internal server error",
+    });
+  }
+  // add to index
+  try {
+    await db
+      .collection("users")
+      .doc("index")
+      .set(
+        {
+          google: {
+            [uid]: username,
+          },
+        },
+        { merge: true }
+      );
   } catch (error) {
     return res.status(500).json({
       status: STATUS_ERROR,
@@ -117,6 +137,12 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   let user = await auth.getUser(uid);
   let photoURL = user.photoURL;
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
+<<<<<<< HEAD:controllers/user/registerGoogle.ts
+=======
+  if (photoURL !== undefined) {
+    payload = { ...payload, photoURL };
+  }
+>>>>>>> 64faba9 (moving users to google specific collection):controllers/user/register.ts
   const token = await createTokenJWT(payload, "168h");
 
   // create user directory

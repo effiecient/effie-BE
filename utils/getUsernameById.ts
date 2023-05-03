@@ -5,7 +5,7 @@ export async function getUsernameById(uid: string) {
 
   const { db } = getDB();
 
-  const userRef = db.collection("users");
+  const userRef = db.collection("users").doc("index").collection("google");
 
   // check if doc in userRef has name uid
   const userData = await userRef.doc(uid).get();
