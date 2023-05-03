@@ -3,6 +3,7 @@ import { getHello, userController, directoryController, authController } from ".
 import cors from "cors";
 
 import { allowCors, addAuthUsernameToHeader, jsonParser } from "../middlewares";
+import { STATUS_ERROR } from "../config";
 
 const app = require("express")();
 
@@ -35,7 +36,7 @@ app.delete("/api/directory/:username/*", jsonParser, directoryController.deleteL
 
 // CATCH ALL
 app.all("*", (req: VercelRequest, res: VercelResponse) => {
-  res.status(404).json({ success: false, message: "Endpoint not found." });
+  res.status(404).json({ status: STATUS_ERROR, message: "Endpoint not found" });
 });
 
 module.exports = app;
