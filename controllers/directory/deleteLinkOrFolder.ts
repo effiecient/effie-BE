@@ -82,6 +82,8 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   // delete from tree
   delete parentDataInTree.children[pathArray[pathArray.length - 1]];
 
+  await db.collection("linked-directories").doc(username).set({ tree });
+
   // delete from database
   await batch.commit();
   // update parent
