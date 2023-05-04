@@ -129,7 +129,6 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
   const token = await createTokenJWT(payload, "168h");
 
-  console.log("aman");
   // create user directory
   let tree = {};
   // create root document with generated ID
@@ -150,7 +149,6 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
     children: {},
   };
   await rootRef.set(rootData);
-  console.log("aman2");
   tree = {
     root: {
       id: rootId,
@@ -160,7 +158,6 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   };
   const userDirectoryRef = db.collection("linked-directories").doc(username);
   await userDirectoryRef.set({ tree });
-  console.log("aman3");
   return res.status(200).json({
     status: STATUS_SUCCESS,
     data: { token, username, photoURL },
