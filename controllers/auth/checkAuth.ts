@@ -15,7 +15,7 @@ export default async function checkAuth(req: any, res: any) {
   try {
     decoded = verifyTokenJWT(token);
   } catch (err) {
-    res.clearCookie(process.env.NODE_ENV === "preview" ? "effieTokenPreview" : "effieToken");
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
     res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     return;
   }
@@ -23,11 +23,12 @@ export default async function checkAuth(req: any, res: any) {
   // check if environment is the same as the current environment
   if (decoded.environment !== process.env.NODE_ENV) {
     console.log("Invalid token. Environment is not the same.");
+    console.log(typeof decoded.environment);
+    console.log(typeof process.env.NODE_ENV);
     console.log("Token environment: " + decoded.environment);
     console.log("Current environment: " + process.env.NODE_ENV);
-    res.clearCookie(process.env.NODE_ENV === "preview" ? "effieTokenPreview" : "effieToken");
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
     res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
-    // res.redirect("/logout");
     return;
   }
   // get the photoURL based on google uid from firebase auth
