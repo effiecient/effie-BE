@@ -8,7 +8,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
   if (req.headers.username === undefined) {
     res.status(401).json({
       status: STATUS_ERROR,
-      message: "Unauthorized",
+      message: "Unauthorized. you must be logged in to create link",
     });
     return;
   }

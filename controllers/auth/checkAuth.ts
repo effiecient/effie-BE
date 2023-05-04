@@ -15,17 +15,17 @@ export default async function checkAuth(req: any, res: any) {
   try {
     decoded = verifyTokenJWT(token);
   } catch (err) {
-    res.clearCookie(process.env.VERCEL_ENV === "preview" ? "effieTokenPreview" : "effieToken");
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "effieTokenPreview" : "effieToken");
     res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     return;
   }
 
   // check if environment is the same as the current environment
-  if (decoded.environment !== process.env.VERCEL_ENV) {
+  if (decoded.environment !== process.env.NODE_ENV) {
     console.log("Invalid token. Environment is not the same.");
     console.log("Token environment: " + decoded.environment);
-    console.log("Current environment: " + process.env.VERCEL_ENV);
-    res.clearCookie(process.env.VERCEL_ENV === "preview" ? "effieTokenPreview" : "effieToken");
+    console.log("Current environment: " + process.env.NODE_ENV);
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "effieTokenPreview" : "effieToken");
     res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     // res.redirect("/logout");
     return;

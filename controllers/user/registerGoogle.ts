@@ -84,7 +84,6 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
 
   const { db } = getDB();
 
-  // google collection inside usrs collection
   const userRef = db.collection("users").doc("index").collection("google");
 
   const usernameExist = await userRef.where("username", "==", username).get();
@@ -123,28 +122,14 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // add root folder
-  try {
-    await db.collection("directories").doc(username).set({ type: "folder" });
-  } catch (error) {
-    return res.status(500).json({
-      status: STATUS_ERROR,
-      message: "Internal server error",
-    });
-  }
   // make jwt token
   // get the photoURL based on google uid from firebase auth
   let user = await auth.getUser(uid);
   let photoURL = user.photoURL;
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
-<<<<<<< HEAD:controllers/user/registerGoogle.ts
-=======
-  if (photoURL !== undefined) {
-    payload = { ...payload, photoURL };
-  }
->>>>>>> 64faba9 (moving users to google specific collection):controllers/user/register.ts
   const token = await createTokenJWT(payload, "168h");
 
+  console.log("aman");
   // create user directory
   let tree = {};
   // create root document with generated ID
@@ -159,21 +144,23 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
     personalAccess: [],
     createdAt: new Date(),
     lastModified: new Date(),
-    lastModifiedBy: req.headers.username,
+    lastModifiedBy: username,
     linkCount: 0,
     folderCount: 0,
     children: {},
   };
   await rootRef.set(rootData);
+  console.log("aman2");
   tree = {
     root: {
       id: rootId,
       type: "folder",
+      children: {},
     },
   };
   const userDirectoryRef = db.collection("linked-directories").doc(username);
   await userDirectoryRef.set({ tree });
-
+  console.log("aman3");
   return res.status(200).json({
     status: STATUS_SUCCESS,
     data: { token, username, photoURL },

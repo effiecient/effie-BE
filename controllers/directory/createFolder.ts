@@ -8,7 +8,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   if (req.headers.username === undefined) {
     res.status(401).json({
       status: STATUS_ERROR,
-      message: "Unauthorized",
+      message: "Unauthorized. you must be logged in to create folder",
     });
     return;
   }
@@ -101,7 +101,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // 4. validate: check if the link already exists
+  // 4. validate: check if the folder already exists
   if (relativePath in parentDataInTree.children) {
     res.status(400).json({
       status: STATUS_ERROR,
@@ -119,7 +119,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
 
   const newFolderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
   const newFolderId = newFolderRef.id;
-  const newFolderData = {
+  const newFolderData: any = {
     id: newFolderId,
     type: "folder",
     title,
@@ -141,7 +141,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   newParentData.folderCount += 1;
 
   // save everything except children. remove children property from newParentData
-  delete newParentData.children;
+  delete newFolderData.children;
   newParentData.children[relativePath] = newFolderData;
 
   await parentRef.update(newParentData);
