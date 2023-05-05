@@ -82,7 +82,6 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-
   // 3. four cases emerge from newRelativePath and newPath
   let allProperties: any = { isPinned, title, publicAccess, personalAccess };
   let updatedProperties: any = {};
@@ -93,8 +92,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   });
   let newFolderData = { ...folderData, ...updatedProperties };
 
+  let dateUpdateHappen = new Date();
   // update metadata
-  newFolderData.lastModified = new Date();
+  newFolderData.lastModified = dateUpdateHappen;
   newFolderData.lastModifiedBy = req.headers.username;
 
   if (newRelativePath === undefined && newPath === undefined) {
@@ -107,7 +107,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     newParentData.children[relativePath] = newFolderData;
 
     // b. update metadata
-    newParentData.lastModified = new Date();
+    newParentData.lastModified = dateUpdateHappen;
     newParentData.lastModifiedBy = req.headers.username;
 
     await case1ParentRef.set(newParentData);
@@ -123,7 +123,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
       return;
     }
     // b. update the parentData's children
-    const case2ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentId);
+    const case2ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case1ParentId);
     const case2ParentData = await case2ParentRef.get().then((doc: any) => doc.data());
     let case2NewParentData = { ...case2ParentData };
 
@@ -131,7 +131,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     delete case2NewParentData.children[relativePath];
 
     // b.1 update metadata
-    case2NewParentData.lastModified = new Date();
+    case2NewParentData.lastModified = dateUpdateHappen;
     case2NewParentData.lastModifiedBy = req.headers.username;
 
     await case2ParentRef.set(case2NewParentData);
@@ -146,7 +146,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     currentDataInTree.children[newRelativePath] = {
       id: folderId,
       type: "folder",
-      children: newFolderData.children[relativePath].children,
+      children: currentDataInTree.children[relativePath].children,
     };
     // c.2 delete the old key
     delete currentDataInTree.children[relativePath];
@@ -185,12 +185,12 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
     // d. update metadata
     // d.1 update old parent
-    case3OldParentData.lastModified = new Date();
+    case3OldParentData.lastModified = dateUpdateHappen;
     case3OldParentData.lastModifiedBy = req.headers.username;
     case3OldParentData.folderCount -= 1;
     await case3OldParentRef.set(case3OldParentData);
     // d.2 update new parent
-    case3NewParentData.lastModified = new Date();
+    case3NewParentData.lastModified = dateUpdateHappen;
     case3NewParentData.lastModifiedBy = req.headers.username;
     case3NewParentData.folderCount += 1;
     await case3ParentRef.set(case3NewParentData);
@@ -297,12 +297,12 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
     // d. update metadata
     // d.1 update old parent
-    case4OldParentData.lastModified = new Date();
+    case4OldParentData.lastModified = dateUpdateHappen;
     case4OldParentData.lastModifiedBy = req.headers.username;
     case4OldParentData.folderCount -= 1;
     await case4OldParentRef.set(case4OldParentData);
     // d.2 update new parent
-    case4NewParentData.lastModified = new Date();
+    case4NewParentData.lastModified = dateUpdateHappen;
     case4NewParentData.lastModifiedBy = req.headers.username;
     case4NewParentData.folderCount += 1;
     await case4ParentRef.set(case4NewParentData);
@@ -373,7 +373,6 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
     await db.collection("linked-directories").doc(username).set({ tree });
   }
-
   // 4. update all the children permission
 
   let isPublicAccessChanged = "publicAccess" in updatedProperties;
@@ -382,7 +381,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   console.log(isPublicAccessChanged, isPersonalAccessChanged);
   if (isPublicAccessChanged || isPersonalAccessChanged) {
     console.log("permission changed");
-    let allIds = flattenDataInTree(dataInTree);
+    let { allIds, folderIds } = flattenDataInTree(dataInTree);
     let batch = db.batch();
     // 4.a update children's doc
     let newPermissions: any = {};
@@ -394,9 +393,31 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     }
     for (let i = 0; i < allIds.length; i++) {
       let updatedChildrenKey = { ...newPermissions };
-      updatedChildrenKey["lastModified"] = new Date();
+      updatedChildrenKey["lastModified"] = dateUpdateHappen;
       updatedChildrenKey["lastModifiedBy"] = req.headers.username;
       const id = allIds[i];
+      console.log("updatedChildrenKey");
+      console.log(updatedChildrenKey);
+      // for all folder, update the children's permission
+      if (folderIds.includes(id)) {
+        // take the children, then update the permission with the new one for each key in children
+        let children = await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(id).get();
+        children = children.data();
+        let newChildren = { ...children };
+        let childrenRelativePath = Object.keys(children.children);
+        for (let i = 0; i < childrenRelativePath.length; i++) {
+          const childRelativePath = childrenRelativePath[i];
+          newChildren.children[childRelativePath] = {
+            ...newChildren.children[childRelativePath],
+            ...newPermissions,
+          };
+
+          // lastModified and lastModifiedBy
+          newChildren.children[childRelativePath]["lastModified"] = dateUpdateHappen;
+          newChildren.children[childRelativePath]["lastModifiedBy"] = req.headers.username;
+        }
+        updatedChildrenKey["children"] = newChildren.children;
+      }
       batch.update(db.collection("linked-directories").doc(username).collection("links-and-folders").doc(id), updatedChildrenKey);
     }
     await batch.commit();
@@ -410,6 +431,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
       if (isPersonalAccessChanged) {
         newFolderData.children[childRelativePath]["personalAccess"] = updatedProperties["personalAccess"];
       }
+      // lastModified and lastModifiedBy
+      newFolderData.children[childRelativePath]["lastModified"] = dateUpdateHappen;
+      newFolderData.children[childRelativePath]["lastModifiedBy"] = req.headers.username;
     }
   }
 

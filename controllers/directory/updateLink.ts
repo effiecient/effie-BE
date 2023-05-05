@@ -84,8 +84,9 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
   });
   let newLinkData = { ...linkData, ...updatedProperties };
 
+  let dateUpdateHappen = new Date();
   // update metadata
-  newLinkData.lastModified = new Date();
+  newLinkData.lastModified = dateUpdateHappen;
   newLinkData.lastModifiedBy = req.headers.username;
 
   if (newRelativePath === undefined && newPath === undefined) {
@@ -98,7 +99,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     newParentData.children[relativePath] = newLinkData;
 
     // b. update metadata
-    newParentData.lastModified = new Date();
+    newParentData.lastModified = dateUpdateHappen;
     newParentData.lastModifiedBy = req.headers.username;
 
     await case1ParentRef.set(newParentData);
@@ -122,7 +123,7 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
     delete case2NewParentData.children[relativePath];
 
     // b.1 update metadata
-    case2NewParentData.lastModified = new Date();
+    case2NewParentData.lastModified = dateUpdateHappen;
     case2NewParentData.lastModifiedBy = req.headers.username;
 
     await case2ParentRef.set(case2NewParentData);
@@ -175,12 +176,12 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
 
     // d. update metadata
     // d.1 update old parent
-    case3OldParentData.lastModified = new Date();
+    case3OldParentData.lastModified = dateUpdateHappen;
     case3OldParentData.lastModifiedBy = req.headers.username;
     case3OldParentData.linkCount -= 1;
     await case3OldParentRef.set(case3OldParentData);
     // d.2 update new parent
-    case3NewParentData.lastModified = new Date();
+    case3NewParentData.lastModified = dateUpdateHappen;
     case3NewParentData.lastModifiedBy = req.headers.username;
     case3NewParentData.linkCount += 1;
     await case3ParentRef.set(case3NewParentData);
@@ -285,12 +286,12 @@ export async function updateLink(req: VercelRequest, res: VercelResponse) {
 
     // d. update metadata
     // d.1 update old parent
-    case4OldParentData.lastModified = new Date();
+    case4OldParentData.lastModified = dateUpdateHappen;
     case4OldParentData.lastModifiedBy = req.headers.username;
     case4OldParentData.linkCount -= 1;
     await case4OldParentRef.set(case4OldParentData);
     // d.2 update new parent
-    case4NewParentData.lastModified = new Date();
+    case4NewParentData.lastModified = dateUpdateHappen;
     case4NewParentData.lastModifiedBy = req.headers.username;
     case4NewParentData.linkCount += 1;
     await case4ParentRef.set(case4NewParentData);

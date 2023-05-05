@@ -134,6 +134,7 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   // create root document with generated ID
   const rootRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
   const rootId = rootRef.id;
+  let dateRegisterHappen = new Date();
   const rootData = {
     id: rootId,
     type: "folder",
@@ -141,8 +142,8 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
     isPinned: false,
     publicAccess: "none",
     personalAccess: [],
-    createdAt: new Date(),
-    lastModified: new Date(),
+    createdAt: dateRegisterHappen,
+    lastModified: dateRegisterHappen,
     lastModifiedBy: username,
     linkCount: 0,
     folderCount: 0,

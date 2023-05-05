@@ -145,13 +145,23 @@ export function getLastIdInPathFromTree(tree: any, path: string) {
 export function flattenDataInTree(dataInTree: any) {
   // flatten dataInTree, extract all ids. do it recursively
   let allIds: any = [];
+  let folderIds: any = [];
+  let fileIds: any = [];
   allIds.push(dataInTree.id);
   if (dataInTree.children) {
     for (const key in dataInTree.children) {
-      let temp = flattenDataInTree(dataInTree.children[key]);
+      // if has children, push to folderIds
+      if (dataInTree.children[key].children) {
+        folderIds.push(dataInTree.children[key].id);
+      } else {
+        fileIds.push(dataInTree.children[key].id);
+      }
+      let { allIds: childrensAllIds, folderIds: childrensFolderIds, fileIds: childrenFileIds } = flattenDataInTree(dataInTree.children[key]);
       // push temp to allIds
-      allIds = [...allIds, ...temp];
+      allIds = [...allIds, ...childrensAllIds];
+      folderIds = [...folderIds, ...childrensFolderIds];
+      fileIds = [...fileIds, ...childrenFileIds];
     }
   }
-  return allIds;
+  return { allIds, folderIds, fileIds };
 }

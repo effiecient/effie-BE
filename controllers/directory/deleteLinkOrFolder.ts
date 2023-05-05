@@ -70,7 +70,8 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
     res.status(404).json({ status: STATUS_ERROR, message: `${req.params["0"]} does not exist` });
     return;
   }
-  let allIds = flattenDataInTree(dataInTree);
+  let { allIds } = flattenDataInTree(dataInTree);
+
   const { db } = getDB();
   let batch = db.batch();
   for (let i = 0; i < allIds.length; i++) {
@@ -98,8 +99,9 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
     newParentData.linkCount -= 1;
   }
 
+  let dateDeleteHappen = new Date();
   // updating metadata
-  newParentData.lastModified = new Date();
+  newParentData.lastModified = dateDeleteHappen;
   newParentData.lastModifiedBy = username;
 
   await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentDataInTree.id).set(newParentData);

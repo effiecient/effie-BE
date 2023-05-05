@@ -120,6 +120,7 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
 
   const newLinkRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
   const newLinkId = newLinkRef.id;
+  let dateCreationHappened = new Date();
   const newLinkData = {
     id: newLinkId,
     type: "link",
@@ -128,8 +129,8 @@ export async function createLink(req: VercelRequest, res: VercelResponse) {
     isPinned,
     publicAccess,
     personalAccess,
-    createdAt: new Date(),
-    lastModified: new Date(),
+    createdAt: dateCreationHappened,
+    lastModified: dateCreationHappened,
     lastModifiedBy: req.headers.username,
   };
   await newLinkRef.set(newLinkData);

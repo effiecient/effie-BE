@@ -119,6 +119,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
 
   const newFolderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc();
   const newFolderId = newFolderRef.id;
+  let dateCreationHappened = new Date();
   const newFolderData: any = {
     id: newFolderId,
     type: "folder",
@@ -129,8 +130,8 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
     linkCount: 0,
     folderCount: 0,
     children: {},
-    createdAt: new Date(),
-    lastModified: new Date(),
+    createdAt: dateCreationHappened,
+    lastModified: dateCreationHappened,
     lastModifiedBy: req.headers.username,
   };
   await newFolderRef.set(newFolderData);
