@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB, getUsersTree } from "../../utils";
+import { flattenDataInTree, getDB, getUsersTree } from "../../utils";
 import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
 
 export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
@@ -115,18 +115,4 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   }
 
   res.status(200).json({ status: STATUS_SUCCESS });
-}
-
-function flattenDataInTree(dataInTree: any) {
-  // flatten dataInTree, extract all ids. do it recursively
-  let allIds: any = [];
-  allIds.push(dataInTree.id);
-  if (dataInTree.children) {
-    for (const key in dataInTree.children) {
-      let temp = flattenDataInTree(dataInTree.children[key]);
-      // push temp to allIds
-      allIds = [...allIds, ...temp];
-    }
-  }
-  return allIds;
 }

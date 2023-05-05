@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, validateBody } from "../../utils";
+import { flattenDataInTree, getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, validateBody } from "../../utils";
 import { isAnyDefined } from "../../utils/isAnyDefined";
 
 export async function updateFolder(req: VercelRequest, res: VercelResponse) {
@@ -62,6 +62,14 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
+
+  // get dataInTree for later use
+  let dataInTree = tree.root;
+  let pathArray = path.split("/").filter((item: any) => item !== "");
+  for (let i = 0; i < pathArray.length; i++) {
+    dataInTree = dataInTree.children[pathArray[i]];
+  }
+  dataInTree = dataInTree.children[relativePath];
 
   const { db } = getDB();
   const folderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(folderId);
@@ -365,7 +373,47 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
 
     await db.collection("linked-directories").doc(username).set({ tree });
   }
-  // 4. update the link itself
+
+  // 4. update all the children permission
+
+  let isPublicAccessChanged = "publicAccess" in updatedProperties;
+  let isPersonalAccessChanged = "personalAccess" in updatedProperties;
+  console.log("isPublicAccessChanged, isPersonalAccessChanged");
+  console.log(isPublicAccessChanged, isPersonalAccessChanged);
+  if (isPublicAccessChanged || isPersonalAccessChanged) {
+    console.log("permission changed");
+    let allIds = flattenDataInTree(dataInTree);
+    let batch = db.batch();
+    // 4.a update children's doc
+    let newPermissions: any = {};
+    if (isPublicAccessChanged) {
+      newPermissions["publicAccess"] = updatedProperties["publicAccess"];
+    }
+    if (isPersonalAccessChanged) {
+      newPermissions["personalAccess"] = updatedProperties["personalAccess"];
+    }
+    for (let i = 0; i < allIds.length; i++) {
+      let updatedChildrenKey = { ...newPermissions };
+      updatedChildrenKey["lastModified"] = new Date();
+      updatedChildrenKey["lastModifiedBy"] = req.headers.username;
+      const id = allIds[i];
+      batch.update(db.collection("linked-directories").doc(username).collection("links-and-folders").doc(id), updatedChildrenKey);
+    }
+    await batch.commit();
+    // 4.b update new folder data's children permission
+    let childrenRelativePath = Object.keys(newFolderData.children);
+    for (let i = 0; i < childrenRelativePath.length; i++) {
+      const childRelativePath = childrenRelativePath[i];
+      if (isPublicAccessChanged) {
+        newFolderData.children[childRelativePath]["publicAccess"] = updatedProperties["publicAccess"];
+      }
+      if (isPersonalAccessChanged) {
+        newFolderData.children[childRelativePath]["personalAccess"] = updatedProperties["personalAccess"];
+      }
+    }
+  }
+
+  // 5. update the link itself
   await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(folderId).set(newFolderData);
 
   res.status(200).json({

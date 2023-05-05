@@ -141,3 +141,17 @@ export function getLastIdInPathFromTree(tree: any, path: string) {
 
   return { lastDataId, err };
 }
+
+export function flattenDataInTree(dataInTree: any) {
+  // flatten dataInTree, extract all ids. do it recursively
+  let allIds: any = [];
+  allIds.push(dataInTree.id);
+  if (dataInTree.children) {
+    for (const key in dataInTree.children) {
+      let temp = flattenDataInTree(dataInTree.children[key]);
+      // push temp to allIds
+      allIds = [...allIds, ...temp];
+    }
+  }
+  return allIds;
+}
