@@ -1,39 +1,40 @@
-import { verifyTokenJWT } from "../../utils";
+import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
+import { getFirebaseAuth, verifyTokenJWT } from "../../utils";
 
-export default function checkAuth(req: any, res: any) {
+export default async function checkAuth(req: any, res: any) {
   // check whether the auth is valid or not. If valid, return username
   // if not, return 401
   let token;
   if (req.headers.authorization) {
     token = req.headers.authorization;
   } else {
-    res.status(401).json({ success: false, message: "No token provided." });
+    res.status(401).json({ status: STATUS_ERROR, message: "No token provided." });
     return;
   }
   let decoded;
   try {
     decoded = verifyTokenJWT(token);
   } catch (err) {
-    res.status(401).json({ success: false, message: "Invalid token." });
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
+    res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     return;
   }
 
   // check if environment is the same as the current environment
   if (decoded.environment !== process.env.NODE_ENV) {
     console.log("Invalid token. Environment is not the same.");
+    console.log(typeof decoded.environment);
+    console.log(typeof process.env.NODE_ENV);
     console.log("Token environment: " + decoded.environment);
     console.log("Current environment: " + process.env.NODE_ENV);
-    res.status(401).json({ success: false, message: "Invalid token." });
+    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
+    res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     return;
   }
+  // get the photoURL based on google uid from firebase auth
+  let { auth } = getFirebaseAuth();
+  let user = await auth.getUser(decoded.uid);
+  let photoURL = user.photoURL;
 
-  if (decoded) {
-    if (decoded.photoURL === undefined) {
-      res.status(200).json({ success: true, username: decoded.username });
-    } else {
-      res.status(200).json({ success: true, username: decoded.username, photoURL: decoded.photoURL });
-    }
-  } else {
-    res.status(401).json({ success: false, message: "Invalid token." });
-  }
+  res.status(200).json({ status: STATUS_SUCCESS, data: { username: decoded.username, photoURL: photoURL } });
 }

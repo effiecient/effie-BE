@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 
-export async function usernameCheck(req: VercelRequest, res: VercelResponse) {
+export async function checkGoogleAccountIsRegistered(req: VercelRequest, res: VercelResponse) {
   // return isRegistered true | false by checking if uid (given in the body), is associated with a username in the database.
   // body contains uid
   const { uid } = req.body;

@@ -1,9 +1,13 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDB, recursiveDeleteDocument } from "../../utils";
+import { flattenDataInTree, getDB, getUsersTree } from "../../utils";
 import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
 
 export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
   // can handle unknown path. so /api/directory/username/unknown/path can be handled, /api/directory/username/unknown/path/another/unknown/path can also be handled
+  const { username } = req.params;
+
+  // read /api/directory/username/* path, remove empty strings
+  let pathArray = req.params["0"].split("/").filter((path: any) => path !== "");
 
   //validate: check if user is logged in
   if (!req.headers.username) {
@@ -11,82 +15,106 @@ export async function deleteLinkOrFolder(req: any, res: VercelResponse) {
     return;
   }
 
-  // parse the input and validate
-  // read params
-  const { username } = req.params;
-
-  // read /api/directory/username/* path, remove empty strings
-  let pathArray = req.params["0"].split("/").filter((path: any) => path !== "");
-  console.log(pathArray);
-  const path = "/" + pathArray.join("/");
-
-  // start getting data from firestore
-  const { db } = getDB();
-
-  // get rootRef
-  const rootRef = db.collection("directories").doc(username);
-
-  // get parentRef
-  let parentRef = rootRef;
-
-  pathArray.slice(0, pathArray.length - 1).forEach((relativePath: any) => {
-    parentRef = parentRef.collection("childrens").doc(relativePath);
-  });
-  // get link data
-  // validate: check if it exist
-  const parent = await parentRef.get();
-  if (!parent.exists) {
-    res.status(404).json({ status: STATUS_ERROR, message: "path not found.", path });
+  // validate: only allow owner to delete
+  if (req.headers.username !== username) {
+    res.status(401).json({ status: STATUS_ERROR, message: "Unauthorized. only owner can delete." });
     return;
   }
-  const parentData = parent.data();
-  // validate: check if link exist
-  const sharedConfig = parentData.childrens[pathArray[pathArray.length - 1]].shareConfiguration;
-  if (parentData.childrens[pathArray[pathArray.length - 1]] === undefined) {
-    res.status(404).json({ status: STATUS_ERROR, message: "path not found.", path });
+  // validate done
+
+  // validate: check if path valid
+  let { tree, err: treeErr } = await getUsersTree(username);
+  if (treeErr) {
+    res.status(400).json({ status: STATUS_ERROR, message: treeErr });
     return;
   }
-  // validate: check if the user has access. don't have access if it's not his own link and (it's not shared or it's shared but not with write access)
-  // there's a bug here. if the user is not the owner, and a folder with private childrens is shared with write access, the user will delete the children also.
-  // need to handle this.
-  // opt 1. delete all childrens recursively. (what we're doing currently. not good)
-  // opt 2. don't allow user to delete folder with private childrens. (expensive)
-  // opt 3. don't allow user to create a private childrens in shared folder. (user limitation. I am drawn to this one.)
-
-  if (username !== req.headers.username && (!sharedConfig || sharedConfig.sharedPrivilege !== "write")) {
-    res.status(401).json({ status: STATUS_ERROR, message: "User not authorized.", path });
+  if (pathArray.length === 0) {
+    res.status(400).json({ status: STATUS_ERROR, message: "Cannot delete root folder." });
     return;
   }
 
-  // delete based on type
-  let type = parentData.childrens[pathArray[pathArray.length - 1]].type;
-  if (type === "folder") {
-    // delete folder
-    const { isDeleted, error } = await recursiveDeleteDocument(parentRef, pathArray[pathArray.length - 1]);
-    if (!isDeleted) {
-      res.status(500).json({ status: STATUS_ERROR, message: error, path });
+  let parentDataInTree = tree.root;
+  let grandParentDataInTree: any = undefined;
+  for (let i = 0; i < pathArray.length - 1; i++) {
+    const folderName = pathArray[i];
+    let temporaryPath = "";
+    for (let j = 0; j <= i; j++) {
+      temporaryPath += "/" + pathArray[j];
+    }
+
+    if (parentDataInTree === undefined) {
+      res.status(404).json({ status: STATUS_ERROR, message: `${temporaryPath} does not exist` });
       return;
     }
-    // delete from parent
-    let newChildrens = parentData.childrens;
-    delete newChildrens[pathArray[pathArray.length - 1]];
-    let newParentData = parentData;
-    newParentData.childrens = newChildrens;
-    await parentRef.update(newParentData);
-  } else if (type === "link") {
-    // delete link
-    let newChildrens = parentData.childrens;
-    delete newChildrens[pathArray[pathArray.length - 1]];
 
-    let newParentData = parentData;
-    newParentData.childrens = newChildrens;
-    await parentRef.update(newParentData);
-  } else {
-    // error. doesn't suppose to happen.
-    res.status(500).json({ status: STATUS_ERROR, message: "unknown type.", path });
-    return;
+    if (parentDataInTree.children === undefined) {
+      res.status(404).json({ status: STATUS_ERROR, message: `${temporaryPath} is not a folder` });
+      return;
+    }
+
+    if (i === pathArray.length - 2) {
+      grandParentDataInTree = parentDataInTree;
+    }
+
+    if (folderName in parentDataInTree.children) {
+      parentDataInTree = parentDataInTree.children[folderName];
+    } else {
+      res.status(404).json({ status: STATUS_ERROR, message: `${temporaryPath} does not exist` });
+
+      return;
+    }
   }
 
-  // temporary
-  return res.status(200).json({ status: STATUS_SUCCESS, message: "link deleted.", path });
+  let dataInTree = parentDataInTree.children[pathArray[pathArray.length - 1]];
+  if (dataInTree === undefined) {
+    res.status(404).json({ status: STATUS_ERROR, message: `${req.params["0"]} does not exist` });
+    return;
+  }
+  let { allIds } = flattenDataInTree(dataInTree);
+
+  const { db } = getDB();
+  let batch = db.batch();
+  for (let i = 0; i < allIds.length; i++) {
+    const id = allIds[i];
+    batch.delete(db.collection("linked-directories").doc(username).collection("links-and-folders").doc(id));
+  }
+  let type = parentDataInTree.children[pathArray[pathArray.length - 1]].type;
+
+  // delete from tree
+  delete parentDataInTree.children[pathArray[pathArray.length - 1]];
+
+  await db.collection("linked-directories").doc(username).set({ tree });
+
+  // delete from database
+  await batch.commit();
+  // update parent
+  let parentData = await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentDataInTree.id).get();
+  parentData = parentData.data();
+  let newParentData = { ...parentData };
+  delete parentData.children[pathArray[pathArray.length - 1]];
+  newParentData.children = parentData.children;
+  if (type === "folder") {
+    newParentData.folderCount -= 1;
+  } else if (type === "link") {
+    newParentData.linkCount -= 1;
+  }
+
+  let dateDeleteHappen = new Date();
+  // updating metadata
+  newParentData.lastModified = dateDeleteHappen;
+  newParentData.lastModifiedBy = username;
+
+  await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(parentDataInTree.id).set(newParentData);
+
+  // update grandparent
+  if (grandParentDataInTree !== undefined) {
+    let grandParentData = await db.collection("linked-directories").doc(username).collection("links-and-folders").doc(grandParentDataInTree.id).get();
+    grandParentData = grandParentData.data();
+    let newGrandParentData = { ...grandParentData };
+
+    delete newParentData.children;
+    newGrandParentData.children[pathArray[pathArray.length - 2]] = newParentData;
+  }
+
+  res.status(200).json({ status: STATUS_SUCCESS });
 }

@@ -3,6 +3,7 @@ import { getHello, userController, directoryController, authController } from ".
 import cors from "cors";
 
 import { allowCors, addAuthUsernameToHeader, jsonParser } from "../middlewares";
+import { STATUS_ERROR } from "../config";
 
 const app = require("express")();
 
@@ -16,9 +17,10 @@ app.get("/api", getHello);
 app.post("/api/auth", authController.checkAuth);
 
 // USER CONTROLLER
-app.post("/api/user/check", jsonParser, userController.usernameCheck);
-app.post("/api/user/register", jsonParser, userController.register);
-app.post("/api/user/login", jsonParser, userController.login);
+app.post("/api/user/check-google", jsonParser, userController.checkGoogleAccountIsRegistered);
+
+app.post("/api/user/register-google", jsonParser, userController.registerGoogle);
+app.post("/api/user/login-google", jsonParser, userController.loginGoogle);
 
 // DIRECTORY CONTROLLER
 // TODO: need authentication middleware
@@ -34,7 +36,7 @@ app.delete("/api/directory/:username/*", jsonParser, directoryController.deleteL
 
 // CATCH ALL
 app.all("*", (req: VercelRequest, res: VercelResponse) => {
-  res.status(404).json({ success: false, message: "Endpoint not found." });
+  res.status(404).json({ status: STATUS_ERROR, message: "Endpoint not found" });
 });
 
 module.exports = app;
