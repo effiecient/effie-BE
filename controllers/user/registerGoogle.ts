@@ -159,7 +159,7 @@ export async function registerGoogle(req: VercelRequest, res: VercelResponse) {
   };
   const userDirectoryRef = db.collection("linked-directories").doc(username);
   await userDirectoryRef.set({ tree });
-  return res.status(200).json({
+  res.status(200).json({
     status: STATUS_SUCCESS,
     data: { token, username, photoURL },
   });
