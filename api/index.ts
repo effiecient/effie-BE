@@ -5,9 +5,16 @@ import cors from "cors";
 import { allowCors, addAuthUsernameToHeader, jsonParser } from "../middlewares";
 import { STATUS_ERROR } from "../config";
 
+const cookiesParser = require("cookie-parser");
+
 const app = require("express")();
 
-app.use(cors());
+app.use(cookiesParser());
+app.use(
+  cors({
+    credentials: true,
+  })
+);
 app.use(allowCors);
 app.use(addAuthUsernameToHeader);
 
