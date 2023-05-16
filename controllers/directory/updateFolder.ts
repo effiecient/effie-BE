@@ -75,7 +75,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   const folderRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(folderId);
   const folderData = await folderRef.get().then((doc: any) => doc.data());
   // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
-  if (req.headers.username !== username && folderData.publicAccess !== "write" && !folderData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+  if (req.headers.username !== username && folderData.publicAccess !== "editor" && !folderData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "editor")) {
     res.status(401).json({
       status: STATUS_ERROR,
       message: "Unauthorized.",
@@ -167,7 +167,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const case3ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case3ParentId);
     const case3ParentData = await case3ParentRef.get().then((doc: any) => doc.data());
     // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
-    if (req.headers.username !== username && case3ParentData.publicAccess !== "write" && !case3ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+    if (req.headers.username !== username && case3ParentData.publicAccess !== "editor" && !case3ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "editor")) {
       res.status(401).json({
         status: STATUS_ERROR,
         message: "Unauthorized.",
@@ -276,7 +276,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const case4ParentRef = db.collection("linked-directories").doc(username).collection("links-and-folders").doc(case4ParentId);
     const case4ParentData = await case4ParentRef.get().then((doc: any) => doc.data());
     // validate: check if user can update the link. if user not the owner, publicAccess is not write, and personalAccess to the user is not write, then return error
-    if (req.headers.username !== username && case4ParentData.publicAccess !== "write" && !case4ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+    if (req.headers.username !== username && case4ParentData.publicAccess !== "editor" && !case4ParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "editor")) {
       res.status(401).json({
         status: STATUS_ERROR,
         message: "Unauthorized.",

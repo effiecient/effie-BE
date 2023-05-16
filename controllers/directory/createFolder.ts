@@ -93,7 +93,7 @@ export async function createFolder(req: VercelRequest, res: VercelResponse) {
   newParentData = newParentData.data();
   // validate: check if the user has permission to create link in the parent folder. if not the owner, public access is not write,the user is not in the personal access list with write access, return 403
   // personal access is an array of objects {username: string, access: string}
-  if (req.headers.username !== username && newParentData.publicAccess !== "write" && !newParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "write")) {
+  if (req.headers.username !== username && newParentData.publicAccess !== "editor" && !newParentData.personalAccess.some((item: any) => item.username === req.headers.username && item.access === "editor")) {
     res.status(403).json({
       status: STATUS_ERROR,
       message: `You do not have permission to create link in ${path}`,

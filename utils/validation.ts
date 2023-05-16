@@ -44,8 +44,8 @@ function validateBody(body: any) {
       }
     } else if (key === "publicAccess") {
       let publicAccess = body[key];
-      if (publicAccess !== "read" && publicAccess !== "write" && publicAccess !== "none") {
-        err = "Invalid publicAccess. Options: read, write, none";
+      if (publicAccess !== "viewer" && publicAccess !== "editor" && publicAccess !== "none") {
+        err = "Invalid publicAccess. Options: viewer, editor, none";
         break;
       }
     } else if (key === "personalAccess") {
@@ -60,8 +60,8 @@ function validateBody(body: any) {
           break;
         }
 
-        if (personalAccess[i].access !== "read" && personalAccess[i].access !== "write" && personalAccess[i].access !== "none") {
-          err = "Invalid personalAccess. Each object's access can only be read, write, or none";
+        if (personalAccess[i].access !== "viewer" && personalAccess[i].access !== "editor" && personalAccess[i].access !== "none") {
+          err = "Invalid personalAccess. Each object's access can only be viewer, editor, or none";
           break;
         }
       }
