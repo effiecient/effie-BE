@@ -66,9 +66,9 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // personal access is an array of objects {username: string, access: string}
   if (
     req.headers.username !== username &&
-    linkOrFolderData.publicAccess !== "read" &&
-    linkOrFolderData.publicAccess !== "write" &&
-    !linkOrFolderData.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "read" || item.access === "write"))
+    linkOrFolderData.publicAccess !== "viewer" &&
+    linkOrFolderData.publicAccess !== "editor" &&
+    !linkOrFolderData.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "viewer" || item.access === "editor"))
   ) {
     res.status(404).json({
       status: STATUS_ERROR,
@@ -99,9 +99,9 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
   // if the user is not the owner and type is folder, hide children if public access is not read or write, and personal access to the user is not read or write
   if (req.headers.username !== username && linkOrFolderData.type === "folder") {
     linkOrFolderData.children = linkOrFolderData.children.filter((child: any) => {
-      if (child.publicAccess === "read" || child.publicAccess === "write") {
+      if (child.publicAccess === "viewer" || child.publicAccess === "editor") {
         return true;
-      } else if (child.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "read" || item.access === "write"))) {
+      } else if (child.personalAccess.some((item: any) => item.username === req.headers.username && (item.access === "viewer" || item.access === "editor"))) {
         return true;
       } else {
         return false;

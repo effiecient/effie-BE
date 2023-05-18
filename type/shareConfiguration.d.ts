@@ -1,4 +1,4 @@
 export type ShareConfiguration = {
   isShared: boolean;
-  sharedPrivilege?: "read" | "write";
+  sharedPrivilege?: "viewer" | "editor";
 };

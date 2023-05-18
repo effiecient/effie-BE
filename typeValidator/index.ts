@@ -6,7 +6,7 @@ export const isShareConfiguration = (shareConfiguration: ShareConfiguration): bo
     return false;
   }
   if (shareConfiguration.sharedPrivilege) {
-    if (shareConfiguration.sharedPrivilege !== "read" && shareConfiguration.sharedPrivilege !== "write") {
+    if (shareConfiguration.sharedPrivilege !== "viewer" && shareConfiguration.sharedPrivilege !== "editor") {
       return false;
     }
   }
