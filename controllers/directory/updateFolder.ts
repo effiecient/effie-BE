@@ -33,7 +33,7 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     });
     return;
   }
-  let errValidate = validateBody({ username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess });
+  let errValidate = await validateBody({ username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess });
   if (errValidate !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,

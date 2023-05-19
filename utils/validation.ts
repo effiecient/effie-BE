@@ -1,8 +1,10 @@
+import { getDB } from "./firebase";
+
 const isRelativePathValid = (path: string): boolean => {
   // should not be empty, contain only alphanumeric characters and dashes, and not start with a dash
   return /^[a-zA-Z0-9]+[a-zA-Z0-9-]*$/.test(path);
 };
-function validateBody(body: any) {
+async function validateBody(body: any) {
   let err: any = undefined;
   let keys = Object.keys(body);
   keys = keys.filter((key) => body[key] !== undefined); // remove undefined
@@ -54,8 +56,12 @@ function validateBody(body: any) {
         break;
       }
     } else if (key === "personalAccess") {
-      // const validUsername = [];
-      // /TODO: get from database
+      const { db } = getDB();
+      const userRef = db.collection("users").doc("index");
+      const userData = (await userRef.get()).data();
+
+      // get all the value from every key and turn it into an array
+      const allUsername = Object.values(userData.google);
 
       let personalAccess = body[key];
       if (!Array.isArray(personalAccess)) {
@@ -70,6 +76,11 @@ function validateBody(body: any) {
 
         if (personalAccess[i].access !== "viewer" && personalAccess[i].access !== "editor" && personalAccess[i].access !== "none") {
           err = "Invalid personalAccess. Each object's access can only be viewer, editor, or none";
+          break;
+        }
+
+        if (!allUsername.includes(personalAccess[i].username)) {
+          err = `Invalid personalAccess. User ${personalAccess[i].username} does not exist`;
           break;
         }
       }
