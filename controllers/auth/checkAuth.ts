@@ -1,5 +1,5 @@
 import { STATUS_ERROR, STATUS_SUCCESS } from "../../config";
-import { getFirebaseAuth, verifyTokenJWT } from "../../utils";
+import { createTokenJWT, getFirebaseAuth, verifyTokenJWT } from "../../utils";
 
 export default async function checkAuth(req: any, res: any) {
   // check whether the auth is valid or not. If valid, return username
@@ -12,11 +12,16 @@ export default async function checkAuth(req: any, res: any) {
     return;
   }
   let decoded;
-  try {
-    decoded = verifyTokenJWT(token);
-  } catch (err) {
-    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
-    res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
+  let error: any;
+  decoded = verifyTokenJWT(token, (err: any, decoded: any) => {
+    if (err) {
+      error = err;
+    }
+    return decoded;
+  });
+
+  if (error) {
+    res.status(401).json({ status: STATUS_ERROR, message: error.message });
     return;
   }
 
@@ -27,7 +32,6 @@ export default async function checkAuth(req: any, res: any) {
     console.log(typeof process.env.NODE_ENV);
     console.log("Token environment: " + decoded.environment);
     console.log("Current environment: " + process.env.NODE_ENV);
-    res.clearCookie(process.env.NODE_ENV === "preview" ? "devEffieToken" : "effieToken");
     res.status(401).json({ status: STATUS_ERROR, message: "Invalid token." });
     return;
   }
@@ -36,5 +40,10 @@ export default async function checkAuth(req: any, res: any) {
   let user = await auth.getUser(decoded.uid);
   let photoURL = user.photoURL;
 
-  res.status(200).json({ status: STATUS_SUCCESS, data: { username: decoded.username, photoURL: photoURL } });
+  // update the token
+  let payload: any = { uid: decoded.uid, username: decoded.username, environment: process.env.NODE_ENV };
+
+  const newToken = createTokenJWT(payload, "30d");
+
+  res.status(200).json({ status: STATUS_SUCCESS, data: { username: decoded.username, photoURL: photoURL, token: newToken } });
 }

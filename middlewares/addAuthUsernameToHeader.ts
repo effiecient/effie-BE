@@ -7,13 +7,15 @@ export function addAuthUsernameToHeader(req: any, res: any, next: any) {
     return next();
   }
   // parse auth header and add username to req
-  let decoded;
-  try {
-    const authHeader = req.headers.authorization;
-    decoded = verifyTokenJWT(authHeader);
-    req.headers.username = decoded.username;
-  } catch (err: any) {
-    req.headers.username = undefined;
-  }
+  // try {
+  const authHeader = req.headers.authorization;
+  verifyTokenJWT(authHeader, (err: any, decoded: any) => {
+    if (err) {
+      req.headers.username = undefined;
+    } else {
+      req.headers.username = decoded.username;
+    }
+  });
+
   return next();
 }

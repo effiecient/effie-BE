@@ -1,10 +1,8 @@
 export { getUsernameById } from "./getUsernameById";
 export { createTokenJWT, verifyTokenJWT } from "./jwt";
 export { getDB, getFirebaseAuth } from "./firebase";
-export { recursiveUpdateDocumentShareConfiguration } from "./recursiveUpdateDocumentShareConfiguration";
 export { isRelativePathValid, validateBody } from "./validation";
-export { recursiveCloneDocument } from "./recursiveCloneDocument";
-export { recursiveDeleteDocument } from "./recursiveDeleteDocument";
+
 export { isAnyUndefined } from "./isAnyUndefined";
 export { isAnyDefined } from "./isAnyDefined";
 
