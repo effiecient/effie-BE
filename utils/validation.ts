@@ -42,6 +42,11 @@ function validateBody(body: any) {
         err = "Invalid link. Link must start with http:// or https://";
         break;
       }
+      // check if link contain effie.boo. make it case insensitive
+      if (link.toLowerCase().includes("effie.boo")) {
+        err = "Invalid link. cannot redirect to effie.boo";
+        break;
+      }
     } else if (key === "publicAccess") {
       let publicAccess = body[key];
       if (publicAccess !== "viewer" && publicAccess !== "editor" && publicAccess !== "none") {
@@ -49,6 +54,9 @@ function validateBody(body: any) {
         break;
       }
     } else if (key === "personalAccess") {
+      // const validUsername = [];
+      // /TODO: get from database
+
       let personalAccess = body[key];
       if (!Array.isArray(personalAccess)) {
         err = "Invalid personalAccess. Must be an array of objects";
