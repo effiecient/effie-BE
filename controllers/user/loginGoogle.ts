@@ -52,7 +52,7 @@ export async function loginGoogle(req: VercelRequest, res: VercelResponse) {
   // make jwt token
   let payload: any = { uid, username, environment: process.env.NODE_ENV };
 
-  const token = createTokenJWT(payload, "168h");
+  const token = createTokenJWT(payload, "30d");
   // get the photoURL based on google uid from firebase auth
   let user = await auth.getUser(uid);
   let photoURL = user.photoURL;
