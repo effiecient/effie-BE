@@ -7,13 +7,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
   const { username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
 
   // 1. validate input: header and body
-  // validate: must be logged in
+  // validate: check if loggedin
   if (req.headers.username === undefined) {
-    res.status(401).json({
-      status: STATUS_ERROR,
-      message: "Unauthorized.",
-    });
-    return;
+    req.headers.username = "unknown";
   }
 
   // validate: check if username, path, and relativePath is provided

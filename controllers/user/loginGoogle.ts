@@ -45,7 +45,7 @@ export async function loginGoogle(req: VercelRequest, res: VercelResponse) {
   if (username === null) {
     return res.status(400).json({
       status: STATUS_ERROR,
-      message: `User ID ${uid} does not have a username`,
+      message: `User have not registered. Please register first`,
     });
   }
 

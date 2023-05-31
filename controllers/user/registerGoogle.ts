@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createTokenJWT, getDB, getFirebaseAuth, getUsernameById } from "../../utils";
 import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
 const BLACKLISTED_USERNAMES = [
+  "unknown",
   "admin",
   "administrator",
   "root",
