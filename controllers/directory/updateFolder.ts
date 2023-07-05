@@ -100,7 +100,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const parentData = await case1ParentRef.get().then((doc: any) => doc.data());
     let newParentData = { ...parentData };
 
-    newParentData.children[relativePath] = newFolderData;
+    // remove .children if exists
+    newParentData.children[relativePath] = { ...newFolderData, children: undefined };
 
     // b. update metadata
     newParentData.lastModified = dateUpdateHappen;
@@ -123,7 +124,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const case2ParentData = await case2ParentRef.get().then((doc: any) => doc.data());
     let case2NewParentData = { ...case2ParentData };
 
-    case2NewParentData.children[newRelativePath] = newFolderData;
+    // remove .children if exists
+    case2NewParentData.children[newRelativePath] = { ...newFolderData, children: undefined };
     delete case2NewParentData.children[relativePath];
 
     // b.1 update metadata
@@ -176,7 +178,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const case3OldParentData = await case3OldParentRef.get().then((doc: any) => doc.data());
     let case3NewParentData = { ...case3ParentData };
 
-    case3NewParentData.children[relativePath] = newFolderData;
+    // remove .children if exists
+    case3NewParentData.children[relativePath] = { ...newFolderData, children: undefined };
     delete case3OldParentData.children[relativePath];
 
     // d. update metadata
@@ -285,7 +288,8 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     const case4OldParentData = await case4OldParentRef.get().then((doc: any) => doc.data());
     let case4NewParentData = { ...case4ParentData };
 
-    case4NewParentData.children[newRelativePath] = newFolderData;
+    // remove .children if exists
+    case4NewParentData.children[newRelativePath] = { ...newFolderData, children: undefined };
     delete case4OldParentData.children[relativePath];
 
     await case4OldParentRef.set(case4OldParentData);
