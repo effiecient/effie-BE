@@ -101,7 +101,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     let newParentData = { ...parentData };
 
     // remove .children if exists
-    newParentData.children[relativePath] = { ...newFolderData, children: undefined };
+    const temporaryNewFolderData = { ...newFolderData };
+    delete temporaryNewFolderData.children;
+    newParentData.children[relativePath] = temporaryNewFolderData;
 
     // b. update metadata
     newParentData.lastModified = dateUpdateHappen;
@@ -125,7 +127,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     let case2NewParentData = { ...case2ParentData };
 
     // remove .children if exists
-    case2NewParentData.children[newRelativePath] = { ...newFolderData, children: undefined };
+    const temporaryNewFolderData = { ...newFolderData };
+    delete temporaryNewFolderData.children;
+    case2NewParentData.children[newRelativePath] = temporaryNewFolderData;
     delete case2NewParentData.children[relativePath];
 
     // b.1 update metadata
@@ -179,7 +183,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     let case3NewParentData = { ...case3ParentData };
 
     // remove .children if exists
-    case3NewParentData.children[relativePath] = { ...newFolderData, children: undefined };
+    const temporaryNewFolderData = { ...newFolderData };
+    delete temporaryNewFolderData.children;
+    case3NewParentData.children[relativePath] = temporaryNewFolderData;
     delete case3OldParentData.children[relativePath];
 
     // d. update metadata
@@ -289,7 +295,9 @@ export async function updateFolder(req: VercelRequest, res: VercelResponse) {
     let case4NewParentData = { ...case4ParentData };
 
     // remove .children if exists
-    case4NewParentData.children[newRelativePath] = { ...newFolderData, children: undefined };
+    const temporaryNewFolderData = { ...newFolderData };
+    delete temporaryNewFolderData.children;
+    case4NewParentData.children[newRelativePath] = temporaryNewFolderData;
     delete case4OldParentData.children[relativePath];
 
     await case4OldParentRef.set(case4OldParentData);
