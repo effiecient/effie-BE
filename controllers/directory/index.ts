@@ -8,4 +8,6 @@ import { updateLink } from "./updateLink";
 
 import { deleteLinkOrFolder } from "./deleteLinkOrFolder";
 
-export default { createLink, readLinkOrFolder, createFolder, updateFolder, updateLink, deleteLinkOrFolder };
+import { updateLinkOrFolder } from "./updateLinkOrFolder";
+
+export default { createLink, readLinkOrFolder, createFolder, updateFolder, updateLink, deleteLinkOrFolder, updateLinkOrFolder };

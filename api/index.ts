@@ -31,6 +31,7 @@ app.get("/api/directory/:username/*", directoryController.readLinkOrFolder);
 
 app.patch("/api/directory/folder", jsonParser, directoryController.updateFolder);
 app.patch("/api/directory/link", jsonParser, directoryController.updateLink);
+app.patch("/api/v2/directory/:username/*", jsonParser, directoryController.updateLinkOrFolder);
 
 app.delete("/api/directory/:username/*", jsonParser, directoryController.deleteLinkOrFolder);
 
