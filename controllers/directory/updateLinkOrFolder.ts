@@ -101,6 +101,31 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
       });
       return;
     }
+
+    // update the tree
+    let currentDataInTree = tree.root;
+    let pathArray = path.split("/").filter((item: any) => item !== "");
+    for (let i = 0; i < pathArray.length; i++) {
+      currentDataInTree = currentDataInTree.children[pathArray[i]];
+    }
+    // c.1 add the new key
+
+    let newDataInTree :any= {
+      id: dataId,
+      type: currentDataInTree.type,
+    };
+    // if folder, add children
+    if (currentDataInTree.children !== undefined) {
+      newDataInTree["children"] = currentDataInTree.children[relativePath].children;
+    }
+
+      
+    currentDataInTree.children[newRelativePath] = newDataInTree;
+    // c.2 delete the old key
+    delete currentDataInTree.children[relativePath];
+
+    await db.collection("linked-directories").doc(username).set({ tree });
+
   }
 
   // 2. setting up new parent data. update the parentData's children
@@ -111,8 +136,15 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
   // remove .children if exists
   let temporaryNewLinkOrFolderData = { ...newLinkOrFolderData };
   if (temporaryNewLinkOrFolderData.children !== undefined) delete temporaryNewLinkOrFolderData.children;
-  newParentData.children[relativePath] = temporaryNewLinkOrFolderData;
 
+  if (newRelativePath !== undefined) {
+    // remove the old data
+    delete newParentData.children[relativePath];
+    // add the new data
+    newParentData.children[newRelativePath] = temporaryNewLinkOrFolderData;
+  } else {
+    newParentData.children[relativePath] = temporaryNewLinkOrFolderData;
+  }
   // update metadata
   newParentData.lastModified = dateUpdateHappen;
   newParentData.lastModifiedBy = req.headers.username;
