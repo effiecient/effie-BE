@@ -52,6 +52,15 @@ export async function moveLinkOrFolder(req: any, res: VercelResponse) {
     return;
   }
 
+  // cannot move to it's own children
+  if (newPath.startsWith("/" + fullPath)) {
+    res.status(400).json({
+      status: STATUS_ERROR,
+      message: "new path cannot be on it's own children.",
+    });
+    return;
+  }
+
   // check if has access to the old path + relativePath
   // get folder ID. check if folder exists, and user has access to it
   // get tree
