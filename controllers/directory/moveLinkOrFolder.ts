@@ -155,7 +155,6 @@ export async function moveLinkOrFolder(req: any, res: VercelResponse) {
     newParentData.linkCount += 1;
   }
 
-  console.log("testing 2");
   //   hit firetore
   await oldParentRef.update(oldParentData);
   await newParentRef.update(newParentData);
@@ -217,7 +216,6 @@ export async function moveLinkOrFolder(req: any, res: VercelResponse) {
   newDataInTree.children[relativePath] = oldDataInTree.children[relativePath];
 
   delete oldDataInTree.children[relativePath];
-  console.log("testing1");
   await db.collection("linked-directories").doc(username).set({ tree });
 
   res.status(200).json({
