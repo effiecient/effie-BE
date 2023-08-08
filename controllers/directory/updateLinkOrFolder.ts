@@ -74,6 +74,8 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
     return;
   }
 
+  console.log("data is valid");
+
   //   all valid. update the data
   //   1. setting up up new folder or link data
   let allProperties: any = { isPinned, title, publicAccess };
@@ -103,29 +105,35 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
     }
 
     // update the tree
-    let currentDataInTree = tree.root;
+    let currentParentInTree = tree.root;
     let pathArray = path.split("/").filter((item: any) => item !== "");
     for (let i = 0; i < pathArray.length; i++) {
-      currentDataInTree = currentDataInTree.children[pathArray[i]];
+      currentParentInTree = currentParentInTree.children[pathArray[i]];
     }
+    const currentDataInTree = currentParentInTree.children[relativePath];
     // c.1 add the new key
 
-    let newDataInTree :any= {
+    let newDataInTree: any = {
       id: dataId,
       type: currentDataInTree.type,
     };
     // if folder, add children
     if (currentDataInTree.children !== undefined) {
-      newDataInTree["children"] = currentDataInTree.children[relativePath].children;
+      newDataInTree["children"] = currentDataInTree.children;
     }
 
-      
-    currentDataInTree.children[newRelativePath] = newDataInTree;
+    currentParentInTree.children[newRelativePath] = newDataInTree;
     // c.2 delete the old key
-    delete currentDataInTree.children[relativePath];
+    delete currentParentInTree.children[relativePath];
 
+    console.log(
+      "here!",
+      JSON.stringify(tree, function (k, v) {
+        return v === undefined ? null : v;
+      })
+    );
     await db.collection("linked-directories").doc(username).set({ tree });
-
+    console.log("here done!");
   }
 
   // 2. setting up new parent data. update the parentData's children
@@ -149,6 +157,7 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
   newParentData.lastModified = dateUpdateHappen;
   newParentData.lastModifiedBy = req.headers.username;
 
+  console.log("step 3 done");
   // 4. update all the children permission if folder
   let dataInTree = tree.root;
   for (let i = 0; i < pathArray.length - 1; i++) {
