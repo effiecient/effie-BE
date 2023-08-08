@@ -99,7 +99,7 @@ export async function moveLinkOrFolder(req: any, res: VercelResponse) {
   if (newPathRelativePathExistErr !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
-      message: err,
+      message: newPathRelativePathExistErr,
     });
     return;
   }
