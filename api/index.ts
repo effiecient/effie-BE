@@ -7,10 +7,12 @@ import { STATUS_ERROR } from "../config";
 
 const app = require("express")();
 
+// middlewares
 app.use(cors());
 app.use(allowCors);
 app.use(addAuthUsernameToHeader);
 
+// ROUTES
 app.get("/api", getHello);
 
 // AUTH CONTROLLER
@@ -23,7 +25,6 @@ app.post("/api/user/register-google", jsonParser, userController.registerGoogle)
 app.post("/api/user/login-google", jsonParser, userController.loginGoogle);
 
 // DIRECTORY CONTROLLER
-// TODO: need authentication middleware
 app.post("/api/directory/link", jsonParser, directoryController.createLink);
 app.post("/api/directory/folder", jsonParser, directoryController.createFolder);
 
