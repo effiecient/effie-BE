@@ -109,7 +109,15 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     });
   }
   // 6. add path to link or folder data
-  linkOrFolderData.path = path;
+  linkOrFolderData.path =
+    "/" +
+    path
+      .split("/")
+      .filter((path: any) => path !== "")
+      .slice(0, -1)
+      .join("/");
+  linkOrFolderData.relativePath = path.split("/").slice(-1)[0];
+
   // 7. convert timestamp to date.
   linkOrFolderData.createdAt = linkOrFolderData.createdAt.toDate();
   linkOrFolderData.lastModified = linkOrFolderData.lastModified.toDate();
