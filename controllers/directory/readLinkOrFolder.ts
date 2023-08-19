@@ -109,7 +109,6 @@ export async function readLinkOrFolder(req: any, res: VercelResponse) {
     });
   }
   // 6. add path to link or folder data
-  // linkOrFolderData.path = path.split("/").slice(0, -1).join("/");
   linkOrFolderData.path =
     "/" +
     path

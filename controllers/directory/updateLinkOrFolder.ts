@@ -153,7 +153,12 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
   for (let i = 0; i < pathArray.length - 1; i++) {
     dataInTree = dataInTree.children[pathArray[i]];
   }
-  dataInTree = dataInTree.children[relativePath];
+
+  if (newRelativePath !== undefined) {
+    dataInTree = dataInTree.children[newRelativePath];
+  } else {
+    dataInTree = dataInTree.children[relativePath];
+  }
 
   let isPublicAccessChanged = "publicAccess" in updatedProperties;
   if (isPublicAccessChanged) {
