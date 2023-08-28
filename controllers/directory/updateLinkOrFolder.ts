@@ -23,16 +23,16 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
   const relativePath = fullPath.split("/").slice(-1)[0];
 
   //   read body
-  const { title, isPinned, publicAccess, newRelativePath } = req.body;
+  const { title, isPinned, publicAccess, newRelativePath , link} = req.body;
   // validate: check if at least one of the data is provided
-  if (!isAnyDefined(isPinned, title, newRelativePath, publicAccess)) {
+  if (!isAnyDefined(isPinned, title, newRelativePath, publicAccess, link)) {
     res.status(400).json({
       status: STATUS_ERROR,
       message: "Invalid body. At least one of the data must be provided. check docs for more info.",
     });
     return;
   }
-  let errValidate = await validateBody({ username, path, title, isPinned, newRelativePath, publicAccess });
+  let errValidate = await validateBody({ username, path, title, link, isPinned, newRelativePath, publicAccess });
   if (errValidate !== undefined) {
     res.status(400).json({
       status: STATUS_ERROR,
@@ -76,7 +76,7 @@ export async function updateLinkOrFolder(req: any, res: VercelResponse) {
 
   //   all valid. update the data
   //   1. setting up up new folder or link data
-  let allProperties: any = { isPinned, title, publicAccess };
+  let allProperties: any = { isPinned, title, publicAccess, link };
   let updatedProperties: any = {};
   Object.keys(allProperties).forEach((key) => {
     if (allProperties[key] !== undefined) {
