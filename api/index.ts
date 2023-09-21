@@ -30,8 +30,8 @@ app.post("/api/directory/folder", jsonParser, directoryController.createFolder);
 
 app.get("/api/directory/:username/*", directoryController.readLinkOrFolder);
 
-app.patch("/api/directory/folder", jsonParser, directoryController.updateFolder);
-app.patch("/api/directory/link", jsonParser, directoryController.updateLink);
+// app.patch("/api/directory/folder", jsonParser, directoryController.updateFolder);
+// app.patch("/api/directory/link", jsonParser, directoryController.updateLink);
 
 app.patch("/api/directory/update/:username/*", jsonParser, directoryController.updateLinkOrFolder);
 app.patch("/api/directory/move/:username/*", jsonParser, directoryController.moveLinkOrFolder);
