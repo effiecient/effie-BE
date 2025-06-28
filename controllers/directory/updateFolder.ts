@@ -1,42 +1,44 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { STATUS_SUCCESS, STATUS_ERROR } from "../../config";
-import { flattenDataInTree, getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isAnyUndefined, isRelativePathFreeInTree, validateBody } from "../../utils";
-import { isAnyDefined } from "../../utils/isAnyDefined";
+import { getDB, getLastIdInPathFromTree, getParentIdAndDataIdFromTree, getUsersTree, isRelativePathFreeInTree, validateBody } from "../../utils";
+import { flattenDataInTree } from "../../utils/flattenDataInTree";
+import { isAnyDefined, isAnyUndefined } from "../../utils/isAnyDefined";
+import { sendError, validateUserAccess } from "../../utils/responseHelpers";
 
-export async function updateFolder(req: VercelRequest, res: VercelResponse) {
-  const { username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
+async function validateUpdateRequest(
+  req: VercelRequest,
+  res: VercelResponse,
+  body: any
+): Promise<boolean> {
+  const { username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = body;
 
-  // 1. validate input: header and body
-  // validate: check if loggedin
   if (req.headers.username === undefined) {
     req.headers.username = "unknown";
   }
 
-  // validate: check if username, path, and relativePath is provided
   if (isAnyUndefined(username, path, relativePath)) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid body. Username, path, and relativePath must be provided.",
-    });
-    return;
+    sendError(res, 400, "Invalid body. Username, path, and relativePath must be provided.");
+    return false;
   }
 
-  // validate: check if at least one of the data is provided
   if (!isAnyDefined(isPinned, title, newRelativePath, newPath, publicAccess, personalAccess)) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: "Invalid body. At least one of the data must be provided. check docs for more info.",
-    });
+    sendError(res, 400, "Invalid body. At least one of the data must be provided.");
+    return false;
+  }
+
+  const validationError = await validateBody(body);
+  if (validationError) {
+    sendError(res, 400, validationError);
+    return false;
+  }
+
+  return true;
+}
+
+export async function updateFolder(req: VercelRequest, res: VercelResponse) {
+  if (!await validateUpdateRequest(req, res, req.body)) {
     return;
   }
-  let errValidate = await validateBody({ username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess });
-  if (errValidate !== undefined) {
-    res.status(400).json({
-      status: STATUS_ERROR,
-      message: errValidate,
-    });
-    return;
-  }
+  const { username, path, relativePath, title, isPinned, newRelativePath, newPath, publicAccess, personalAccess } = req.body;
   // validate body done
 
   // 2. get folder ID. check if folder exists, and user has access to it
